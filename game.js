@@ -1,6 +1,6 @@
 "use strict";
 
-const GAME_BOARD_SIZE = 3;
+const GAME_BOARD_SIZE = 4;
 
 const markTypes = {
     // each gameboard square must contain one of the following:
@@ -13,21 +13,21 @@ const Player = (id, markType, gameBoard) => {
     let _score = 0;
     let _markType = markType;
 
-    const setMarkType = (markType) => _markType = markType;
     const reset = () => _score = 0;
     const win = () => _score++;
     const getScore = () => _score;
 
-    function takeTurn(i, j) {
-        if (gameBoard.squareIsBlank(i, j)) {
-            gameBoard.markSquare(i, j, markType);
-        }
-    }
-
     return {
         reset,
-        setMarkType,
-        takeTurn,
+        /**
+         * @param {markTypes} value
+         */
+        set markType(value) {
+            _markType = value;
+        },
+        get markType() {
+            return _markType;
+        },
         getScore,
         win,
     }
@@ -35,8 +35,8 @@ const Player = (id, markType, gameBoard) => {
 
 const game = (function(gameBoardSize) {
     'use strict';
-
-    const gameboard = (function(size) {
+    
+    const gameBoard = (function(size) {
         'use strict';
     
         let _squares = []; // size * size square grid
@@ -56,15 +56,15 @@ const game = (function(gameBoardSize) {
     
         const getSize = () => size;
 
-        function squareIsBlank(i, j) {
-            return _squares[i][j] === markTypes.blank;
+        function squareIsBlank(row, col) {
+            return _squares[row][col] === markTypes.blank;
         }
     
-        function markSquare(i, j, markType) {
-            _squares[i][j] = markType;
+        function markSquare(row, col, markType) {
+            _squares[row][col] = markType;
         }
     
-        const getSquareMark = (i, j) => _squares[i][j];
+        const getSquareMark = (row, col) => _squares[row][col];
 
         const showSquares = () => console.table(_squares);
     
@@ -78,15 +78,29 @@ const game = (function(gameBoardSize) {
         }
     })(gameBoardSize);    
 
-    const _player1 = Player(1, markTypes.x, gameboard);
-    const _player2 = Player(2, markTypes.o, gameboard);
+    const _player1 = Player(1, markTypes.x, gameBoard);
+    const _player2 = Player(2, markTypes.o, gameBoard);
+    let _currentPlayerID = 1;
     const getPlayer = (id) => (id === 1 ? _player1 : _player2);
+    const getCurrentPlayer = () => getPlayer(_currentPlayerID);
+
+    function playerTakeTurn(e) {
+        const row = e.target.dataset['row'];
+        const col = e.target.dataset['col'];
+        
+        if (gameBoard.squareIsBlank(row, col)) {
+            gameBoard.markSquare(row, col, getCurrentPlayer().markType);
+
+            _currentPlayerID = (_currentPlayerID % 2) + 1;
+        }
+    }
 
     return {
         get gameBoard() {
-            return gameboard;
+            return gameBoard;
         },
         getPlayer,
+        playerTakeTurn,
     }
 
 })(GAME_BOARD_SIZE);
@@ -108,7 +122,8 @@ const displayController = (function(gameBoard) {
                 divSquare.classList.add('gameboard__square');
                 divSquare.setAttribute('data-row', i);
                 divSquare.setAttribute('data-col', j);
-                divSquare.textContent = `${i}, ${j}`;
+                divSquare.addEventListener('click', game.playerTakeTurn);
+                //divSquare.textContent = `${i}, ${j}`;
                 divSquare.style.border = '3px solid #335577';
 
                 // hide outer edge borders
@@ -128,6 +143,8 @@ const displayController = (function(gameBoard) {
 
             _divGameboard.appendChild(divRow);
         }
+
+        _divGameboard.addEventListener('click', updateGameBoard);
     }
     _createGameBoard();
 
