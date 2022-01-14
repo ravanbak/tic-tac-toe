@@ -1,6 +1,6 @@
 "use strict";
 
-const GAME_BOARD_SIZE = 4;
+const GAME_BOARD_SIZE = 3;
 
 const markTypes = {
     // each gameboard square must contain one of the following:
@@ -156,15 +156,18 @@ const displayController = (function(gameBoard) {
                 let j = div.dataset.col;
                 let mark = gameBoard.getSquareMark(i, j);
 
-                div.classList.remove('gameboard__square--x', 'gameboard__square--o');
-
                 switch(mark) {
                     case markTypes.x:
                         div.classList.add('gameboard__square--x');
+                        div.textContent = 'X';
                         break;
                     case markTypes.o:
                         div.classList.add('gameboard__square--o');
+                        div.textContent = 'O';
                         break;
+                    default:
+                        div.classList.remove('gameboard__square--x', 'gameboard__square--o');
+                        div.textContent = '';
                 }
             }
         );

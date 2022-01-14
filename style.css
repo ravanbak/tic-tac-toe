@@ -13,6 +13,7 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .gameboard__row {
@@ -27,6 +28,7 @@ body {
     justify-content: center;
     width: 120px;
     height: 120px;
+    font-size: 6em;
     margin: 0;
     padding: 0;
 }
