@@ -145,6 +145,9 @@ const displayController = (function(gameBoard) {
         }
 
         _divGameboard.addEventListener('click', updateGameBoard);
+
+        // prevent highlighting 'x' or 'o' text:
+        _divGameboard.addEventListener('mousedown', (e) => { e.preventDefault() });
     }
     _createGameBoard();
 
