@@ -41,6 +41,8 @@ const Player = (id, markType, gameBoard) => {
 const game = (function(gameBoardSize) {
     'use strict';
     
+    let _winner = null;
+
     const WinnerInfo = (markType, winType, winLocation) => {
         const getPlayer = () => {
             switch (markType) {
@@ -67,7 +69,7 @@ const game = (function(gameBoardSize) {
         const squareGetMark = (row, col) => _squares[row][col];
 
         function reset() {
-            // reset all squares to blank
+            // create gameboard array with all elements empty
             _squares = [];
             for (let i = 0; i < size; i++) {
                 const row = [];
@@ -77,6 +79,7 @@ const game = (function(gameBoardSize) {
                 }
             }
         }
+        reset();
         
         function getWinner() {
             // check for 'size' squares with the same mark 
@@ -137,8 +140,6 @@ const game = (function(gameBoardSize) {
             return null;
         }
 
-        reset();
-
         return {
             reset,
             getSize,
@@ -149,13 +150,23 @@ const game = (function(gameBoardSize) {
         }
     })(gameBoardSize);    
 
+    const isGameOver = () => (!!_winner);
     const _player1 = Player(1, markTypes.x, gameBoard);
     const _player2 = Player(2, markTypes.o, gameBoard);
     let _currentPlayerID = 1;
-    const getPlayer = (id) => (id === 1 ? _player1 : _player2);
-    const getCurrentPlayer = () => getPlayer(_currentPlayerID);
+    const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
+    const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
+
+    function newGame() {
+        gameBoard.reset();
+        _winner = null;
+    }
 
     function playerTakeTurn(e) {
+        if (isGameOver()) {
+            return;
+        }
+        
         const row = e.target.dataset['row'];
         const col = e.target.dataset['col'];
         
@@ -165,19 +176,24 @@ const game = (function(gameBoardSize) {
             _currentPlayerID = (_currentPlayerID % 2) + 1;
         }
 
-        const winner = gameBoard.getWinner();
-        if (winner) {
-            console.log('Winner is player ' + winner.getPlayer().id);
-            console.log(winner);
+        _winner = gameBoard.getWinner();
+        if (_winner) {
+            console.log('Winner is player ' + _winner.getPlayer().id);
+            console.log(_winner);
         }
     }
 
     return {
+        newGame,
         get gameBoard() {
             return gameBoard;
         },
-        getPlayer,
+        getPlayerById,
         playerTakeTurn,
+        get winner() {
+            return _winner;
+        },
+        isGameOver,
     }
 
 })(GAME_BOARD_SIZE);
@@ -227,6 +243,30 @@ const displayController = (function(gameBoard) {
     }
     _createGameBoard();
 
+    function _isWinningSquare(row, col) {
+        if (!game.winner) {
+            return false;
+        }
+
+        const w = game.winner;
+
+        switch (w.winType) {
+            case winnerType.row:
+                return (parseInt(row) === parseInt(w.winLocation));
+            case winnerType.col:
+                return (parseInt(col) === parseInt(w.winLocation));
+            case winnerType.diag:
+                const size = game.gameBoard.getSize();
+                if (parseInt(w.winLocation) === 0) {
+                    return (row === col);
+                } else {
+                    return (parseInt(row) === (size - 1 - parseInt(col)));
+                }
+            default:
+                return false;
+        }
+    }
+
     function updateGameBoard() {
         const squares = document.querySelectorAll('.gameboard__square');
         squares.forEach(
@@ -248,6 +288,10 @@ const displayController = (function(gameBoard) {
                         div.classList.remove('gameboard__square--x', 'gameboard__square--o');
                         div.textContent = '';
                 }
+
+                if (_isWinningSquare(i, j)) {
+                    div.classList.add('gameboard__square--winner');
+                }
             }
         );
     }
@@ -258,4 +302,5 @@ const displayController = (function(gameBoard) {
 
 })(game.gameBoard);
 
+game.newGame();
 displayController.updateGameBoard();

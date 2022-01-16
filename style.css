@@ -41,6 +41,10 @@ body {
     background: rgb(255, 190, 170);
 }
 
+.gameboard__square--winner {
+    background: chartreuse;
+}
+
 .footer {
     display: flex;
     width: 300px;
