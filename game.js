@@ -155,16 +155,17 @@ const game = (function(gameBoardSize) {
         }
     })(gameBoardSize);    
 
+    let _currentPlayerID;
     const isGameOver = () => (!!_winner);
     const _player1 = Player(1, markTypes.x, gameBoard);
     const _player2 = Player(2, markTypes.o, gameBoard);
-    let _currentPlayerID = 1;
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
 
     function newGame() {
         gameBoard.reset();
         _winner = null;
+        _currentPlayerID = 1;
     }
 
     function playerTakeTurn(e) {
@@ -207,6 +208,10 @@ const displayController = (function(gameBoard) {
     'use strict';
 
     const _divGameboard = document.querySelector('.gameboard');
+
+    const _setupButtons = (function() {
+        document.querySelector('.game-controls__new-game').addEventListener('click', _newGame);
+    })();
 
     function _createGameBoard() {
         const size = gameBoard.getSize();
@@ -272,6 +277,11 @@ const displayController = (function(gameBoard) {
         }
     }
 
+    function _newGame() {
+        game.newGame();
+        updateGameBoard();
+    }
+
     function updateGameBoard() {
         const squares = document.querySelectorAll('.gameboard__square');
         squares.forEach(
@@ -296,6 +306,9 @@ const displayController = (function(gameBoard) {
 
                 if (_isWinningSquare(i, j)) {
                     div.classList.add('gameboard__square--winner');
+                }
+                else {
+                    div.classList.remove('gameboard__square--winner');
                 }
             }
         );

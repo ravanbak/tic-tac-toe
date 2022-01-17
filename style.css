@@ -59,8 +59,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 120px;
-    height: 120px;
+    width: min(30vw, 20vh);
+    height: min(30vw, 20vh);
+    min-width: 100px;
+    min-height: 100px;
     font-size: 6em;
     margin: 0;
     padding: 0;
