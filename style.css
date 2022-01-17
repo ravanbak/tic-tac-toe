@@ -8,6 +8,39 @@ body {
     margin: 0;
 }
 
+.dashboard {
+    display: flex;
+    align-items: center;
+    justify-content:space-between;
+    width: 50%;
+    min-width: 350px;
+    margin-bottom: 50px;
+    padding: 20px;
+    border-radius: 10px;
+    background: rgb(250, 250, 250);
+}
+
+.player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.player__name {
+    font-weight: bold;
+    font-size: 3em;
+}
+
+.game-controls {
+    display: flex;
+    flex-direction: column;
+}
+
+.game-controls button {
+    height: 40px;
+    margin: 6px;
+}
+
 .gameboard {
     display: flex;
     flex-direction: column;
