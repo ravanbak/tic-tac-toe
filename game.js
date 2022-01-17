@@ -80,6 +80,10 @@ const game = (function(gameBoardSize) {
             }
         }
         reset();
+
+        function gameBoardIsFull() {
+            return _squares.filter(row => row.filter(square => square == '').length === 0).length == size;
+        }
         
         function getWinner() {
             // check for 'size' squares with the same mark 
@@ -146,6 +150,7 @@ const game = (function(gameBoardSize) {
             squareIsBlank,
             squareSetMark,
             squareGetMark,
+            gameBoardIsFull,
             getWinner,
         }
     })(gameBoardSize);    
