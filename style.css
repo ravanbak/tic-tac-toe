@@ -4,7 +4,7 @@ body {
     align-items: center;
     justify-content: center;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    background: rgb(240, 240, 240);
+    background: rgb(223, 223, 223);
     margin: 0;
 }
 
@@ -12,33 +12,49 @@ body {
     display: flex;
     align-items: center;
     justify-content:space-between;
-    width: 50%;
+    width: min(90vw, 60vh);
     min-width: 350px;
     margin-bottom: 50px;
     padding: 20px;
     border-radius: 10px;
-    background: rgb(250, 250, 250);
+    background: rgb(187, 198, 199);
 }
 
 .player {
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
     align-items: center;
+    border: 1px solid gray;
+    border-radius: 5px;
+    background: rgb(255, 220, 156);
+    padding: 10px;
 }
 
 .player__name {
     font-weight: bold;
-    font-size: 3em;
+    font-size: 2.5em;
+}
+
+.player__score {
+    font-weight: bold;
+    font-size: 2em;
+    border-radius: 4px;
+    background: rgb(0, 119, 69);;
+    color: yellow;
+    padding: 0 20px;
+    text-align: center;
 }
 
 .game-controls {
     display: flex;
     flex-direction: column;
+    justify-content: flex-start;
 }
 
 .game-controls button {
     height: 40px;
-    margin: 6px;
+    margin: 6px 20px;
 }
 
 .gameboard {
@@ -47,6 +63,8 @@ body {
     align-items: center;
     justify-content: center;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
+    background: #335577;
+    border-radius: 12px;
 }
 
 .gameboard__row {
@@ -59,25 +77,30 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: min(30vw, 20vh);
-    height: min(30vw, 20vh);
+    width: min(30vw, 18vh);
+    height: min(30vw, 18vh);
     min-width: 100px;
     min-height: 100px;
-    font-size: 6em;
+    font-size: min(30vw, 18vh);
     margin: 0;
     padding: 0;
+    background: rgb(223, 223, 223);
 }
 
 .gameboard__square--x {
-    background: rgb(98, 255, 247);
+    background: rgb(98, 255, 247, 1);
 }
 
 .gameboard__square--o {
-    background: rgb(255, 190, 170);
+    background: rgb(255, 128, 128, 1);
 }
 
-.gameboard__square--winner {
-    background: chartreuse;
+.gameboard__square--winner-x {
+    background: greenyellow;
+}
+
+.gameboard__square--winner-o {
+    background: greenyellow;
 }
 
 .footer {

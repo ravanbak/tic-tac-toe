@@ -13,7 +13,7 @@ const winnerType = {
     diag: Symbol('diag'),
 }
 
-const Player = (id, markType, gameBoard) => {
+const Player = (id, markType) => {
     let _score = 0;
     let _markType = markType;
 
@@ -41,6 +41,11 @@ const Player = (id, markType, gameBoard) => {
 const game = (function(gameBoardSize) {
     'use strict';
     
+    let _currentPlayerID;
+    const _player1 = Player(1, markTypes.x);
+    const _player2 = Player(2, markTypes.o);
+    const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
+    const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     let _winner = null;
 
     const WinnerInfo = (markType, winType, winLocation) => {
@@ -155,12 +160,7 @@ const game = (function(gameBoardSize) {
         }
     })(gameBoardSize);    
 
-    let _currentPlayerID;
     const isGameOver = () => (!!_winner);
-    const _player1 = Player(1, markTypes.x, gameBoard);
-    const _player2 = Player(2, markTypes.o, gameBoard);
-    const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
-    const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
 
     function newGame() {
         gameBoard.reset();
@@ -184,8 +184,7 @@ const game = (function(gameBoardSize) {
 
         _winner = gameBoard.getWinner();
         if (_winner) {
-            console.log('Winner is player ' + _winner.getPlayer().id);
-            console.log(_winner);
+            _winner.getPlayer().win();
         }
     }
 
@@ -204,7 +203,7 @@ const game = (function(gameBoardSize) {
 
 })(GAME_BOARD_SIZE);
 
-const displayController = (function(gameBoard) {
+const displayController = (function(game) {
     'use strict';
 
     const _divGameboard = document.querySelector('.gameboard');
@@ -214,7 +213,7 @@ const displayController = (function(gameBoard) {
     })();
 
     function _createGameBoard() {
-        const size = gameBoard.getSize();
+        const size = game.gameBoard.getSize();
 
         for (let i = 0; i < size; i++) {
             let divRow = document.createElement('div');
@@ -231,8 +230,12 @@ const displayController = (function(gameBoard) {
                 // hide outer edge borders
                 if (i === 0) {
                     divSquare.style.borderTop = 'none';
+                    if (j ===0) divSquare.style.borderTopLeftRadius = '10px';
+                    else if (j === size - 1) divSquare.style.borderTopRightRadius = '10px';
                 } else if (i === size - 1) {
                     divSquare.style.borderBottom = 'none';
+                    if (j ===0) divSquare.style.borderBottomLeftRadius = '10px';
+                    else if (j === size - 1) divSquare.style.borderBottomRightRadius = '10px';                    
                 }
                 if (j === 0) {
                     divSquare.style.borderLeft = 'none';
@@ -246,7 +249,7 @@ const displayController = (function(gameBoard) {
             _divGameboard.appendChild(divRow);
         }
 
-        _divGameboard.addEventListener('click', updateGameBoard);
+        _divGameboard.addEventListener('click', update);
 
         // prevent highlighting 'x' or 'o' text on gameboard:
         _divGameboard.addEventListener('mousedown', (e) => { e.preventDefault() });
@@ -279,16 +282,26 @@ const displayController = (function(gameBoard) {
 
     function _newGame() {
         game.newGame();
-        updateGameBoard();
+        update();
     }
 
-    function updateGameBoard() {
+    function _updateDashBoard() {
+        // player 1:
+        let score = document.querySelector('#player1 .player__score');
+        score.textContent = game.getPlayerById(1).getScore();
+
+        // player 2:
+        score = document.querySelector('#player2 .player__score');
+        score.textContent = game.getPlayerById(2).getScore();
+    }
+
+    function _updateGameBoard() {
         const squares = document.querySelectorAll('.gameboard__square');
         squares.forEach(
             function(div) {
                 let i = div.dataset.row;
                 let j = div.dataset.col;
-                let mark = gameBoard.squareGetMark(i, j);
+                let mark = game.gameBoard.squareGetMark(i, j);
 
                 switch(mark) {
                     case markTypes.x:
@@ -305,20 +318,31 @@ const displayController = (function(gameBoard) {
                 }
 
                 if (_isWinningSquare(i, j)) {
-                    div.classList.add('gameboard__square--winner');
+                    if (game.winner.getPlayer().markType === markTypes.x) {
+                        div.classList.add('gameboard__square--winner-x');
+                    } else {
+                        div.classList.add('gameboard__square--winner-o');
+                    }
+                    
                 }
                 else {
-                    div.classList.remove('gameboard__square--winner');
+                    div.classList.remove('gameboard__square--winner-x');
+                    div.classList.remove('gameboard__square--winner-o');
                 }
             }
         );
     }
 
-    return {
-        updateGameBoard,
+    function update() {
+        _updateGameBoard();
+        _updateDashBoard();
     }
 
-})(game.gameBoard);
+    return {
+        update,
+    }
+
+})(game);
 
 game.newGame();
-displayController.updateGameBoard();
+displayController.update();
