@@ -1,0 +1,73 @@
+.overlay {
+    display: none;
+    align-items:baseline;
+    justify-content: center;
+    opacity: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.7);
+    transition: opacity 500ms;
+    border: 2px solid red;
+}
+
+.overlay .name-popup {
+    display: flex;
+    margin-top: 20vh;
+    padding: 10px;
+    background: rgb(255, 220, 156);
+    border: solid 1px black;
+    border-radius: 10px;
+    font-size: 1.5em;
+    text-align: center;
+    transition: all 0.5s ease-in-out;
+}
+
+.overlay .name-popup__input {
+    display: flex;
+    flex-direction: column;
+    margin: 40px 20px;
+}
+
+.overlay .name-popup__buttons {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.overlay input {
+    margin: 10px 20px 0 0;
+    font-size: 3rem;
+    text-align: center;
+    border-radius: 12px;
+    background: #335577;;
+    color: yellow;    
+    border: 1px solid black;
+}
+
+.overlay .overlay__close {
+    transition: all 200ms;
+    font-size: 30px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #333;
+}
+
+.overlay .overlay__close:hover {
+    color: red;
+    cursor: pointer;
+}
+
+.overlay .overlay__submit {
+    font-size: 30px;
+    width: 60px;
+    height: 60px;
+    border: 1px solid grey;
+    border-radius: 50%;
+    color: yellow;
+    background: green;
+}

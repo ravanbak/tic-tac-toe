@@ -243,7 +243,7 @@ const displayController = (function(game) {
         
         const playerID = parseInt(e.currentTarget.dataset.playerid);
 
-        document.querySelector('.name-popup__input label').textContent = `Enter Player ${playerID}'s name:`;
+        document.querySelector('.name-popup__input label').textContent = `Player ${playerID}, what's your name?`;
 
         const input = document.querySelector('.overlay input');
         input.value = game.getPlayerById(playerID).name;
