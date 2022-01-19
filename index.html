@@ -15,21 +15,31 @@
     </div>
     <div class="dashboard">
         <div id="player1" class="player">
-            <div>Player 1</div>
-            <div class="player__name">name</div>
-            <div class="player__score">0</div>
-            <div> wins</div>
+            <h2>Player 1</h2>
+            <input type="button" id="player1-name" class="player__button" data-playerid="1">
+            Wins<span class="player__score">0</span>
         </div>
         <div class="game-controls">
-            <button class="game-controls__new-game">New Game</button>
-            <button class="game-controls__new-players">New Players</button>
+            <input type="button" class="game-controls__new-game" value="New Game">
+            <input type="button" class="game-controls__new-players" value="New Players">
         </div>
         <div id="player2" class="player">
-            <div>Player 2</div>
-            <div class="player__name">name</div>
-            <div class="player__score">0</div>
-            <div> wins</div>
+            <h2>Player 2</h2>
+            <input type="button" id="player2-name" class="player__button" data-playerid="2">
+            Wins<span class="player__score">0</span>
         </div>
+        <div id="name-popup" class="overlay">
+            <form class="name-popup" action="" method="dialog">
+                <div class="name-popup__input">
+                    <label for"player-name">Player Name</label>
+                    <input type="text" id="player-name" title="name" placeholder="Name" size="12" maxlength="12">                   
+                </div>
+                <div class="name-popup__buttons">
+                    <a class="overlay__close">&times;</a>
+                    <button class="overlay__submit" type="submit">&check;</button>
+                </div>
+            </form>
+        </div>        
     </div>
     <div class="gameboard-container">
         <div class="gameboard">

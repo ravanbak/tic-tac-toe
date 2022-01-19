@@ -13,8 +13,9 @@ const winnerType = {
     diag: Symbol('diag'),
 }
 
-const Player = (id, markType) => {
+const Player = (id, name, markType) => {
     let _score = 0;
+    let _name = name;
     let _markType = markType;
 
     const reset = () => _score = 0;
@@ -24,6 +25,12 @@ const Player = (id, markType) => {
     return {
         id,
         reset,
+        set name(value) {
+            _name = value;
+        },
+        get name() {
+            return _name;
+        },
         /**
          * @param {markTypes} value
          */
@@ -42,8 +49,8 @@ const game = (function(gameBoardSize) {
     'use strict';
     
     let _currentPlayerID;
-    const _player1 = Player(1, markTypes.x);
-    const _player2 = Player(2, markTypes.o);
+    const _player1 = Player(1, 'Player 1', markTypes.x);
+    const _player2 = Player(2, 'Player 2', markTypes.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     let _winner = null;
@@ -168,6 +175,17 @@ const game = (function(gameBoardSize) {
         _currentPlayerID = 1;
     }
 
+    function playerSetName(id, name) {
+        switch (id) {
+            case 1:
+                _player1.name = name;
+                break;
+            case 2:
+                _player2.name = name;
+                break;
+        }
+    }
+
     function playerTakeTurn(e) {
         if (isGameOver()) {
             return;
@@ -194,6 +212,7 @@ const game = (function(gameBoardSize) {
             return gameBoard;
         },
         getPlayerById,
+        playerSetName,
         playerTakeTurn,
         get winner() {
             return _winner;
@@ -210,9 +229,47 @@ const displayController = (function(game) {
 
     const _setupButtons = (function() {
         document.querySelector('.game-controls__new-game').addEventListener('click', _newGame);
-    })();
+        document.querySelector('#player1-name').addEventListener('click', _showPlayerNameForm);
+        document.querySelector('#player2-name').addEventListener('click', _showPlayerNameForm);
 
-    function _createGameBoard() {
+        document.querySelector('.overlay .name-popup').addEventListener('submit', _submitPlayerName);
+        document.querySelector('.overlay .name-popup .overlay__close').addEventListener('click', _hidePlayerNamePopup);
+    })();
+    
+    function _showPlayerNameForm(e) {
+        const overlay = document.querySelector('.overlay');
+        overlay.style.display = 'flex';
+        overlay.style.opacity = 1;
+        
+        const playerID = parseInt(e.currentTarget.dataset.playerid);
+
+        document.querySelector('.name-popup__input label').textContent = `Enter Player ${playerID}'s name:`;
+
+        const input = document.querySelector('.overlay input');
+        input.value = game.getPlayerById(playerID).name;
+        input.select();
+
+        const popupForm = document.querySelector('.overlay .name-popup');
+        popupForm.dataset.playerid = playerID;
+    }
+
+    function _submitPlayerName(e) {
+        const playerID = parseInt(e.currentTarget.dataset.playerid);
+
+        game.playerSetName(playerID, e.srcElement['player-name'].value);
+        
+        _updateDashBoard();
+
+        _hidePlayerNamePopup();
+    }
+
+    function _hidePlayerNamePopup() {
+        const overlay = document.querySelector('.overlay');
+        overlay.style.display = 'none';
+        overlay.style.opacity = 0;
+    }
+
+    const _createGameBoard = (function() {
         const size = game.gameBoard.getSize();
 
         for (let i = 0; i < size; i++) {
@@ -253,8 +310,7 @@ const displayController = (function(game) {
 
         // prevent highlighting 'x' or 'o' text on gameboard:
         _divGameboard.addEventListener('mousedown', (e) => { e.preventDefault() });
-    }
-    _createGameBoard();
+    })();
 
     function _isWinningSquare(row, col) {
         if (!game.winner) {
@@ -286,13 +342,13 @@ const displayController = (function(game) {
     }
 
     function _updateDashBoard() {
-        // player 1:
-        let score = document.querySelector('#player1 .player__score');
-        score.textContent = game.getPlayerById(1).getScore();
+        // names:
+        document.querySelector('#player1-name').value = game.getPlayerById(1).name;
+        document.querySelector('#player2-name').value = game.getPlayerById(2).name;
 
-        // player 2:
-        score = document.querySelector('#player2 .player__score');
-        score.textContent = game.getPlayerById(2).getScore();
+        // scores:
+        document.querySelector('#player1 .player__score').textContent = game.getPlayerById(1).getScore();
+        document.querySelector('#player2 .player__score').textContent = game.getPlayerById(2).getScore();
     }
 
     function _updateGameBoard() {
