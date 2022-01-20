@@ -23,6 +23,7 @@
     border-radius: 10px;
     font-size: 1.5em;
     text-align: center;
+    max-width: 90%;
     transition: all 0.5s ease-in-out;
 }
 
@@ -30,6 +31,7 @@
     display: flex;
     flex-direction: column;
     margin: 40px 20px;
+    max-width: 90%;
 }
 
 .overlay .name-popup__buttons {
@@ -44,8 +46,8 @@
     font-size: 3rem;
     text-align: center;
     border-radius: 12px;
-    background: #335577;;
-    color: yellow;    
+    background: #FCFCFC;
+    color: black;
     border: 1px solid black;
 }
 
@@ -63,11 +65,18 @@
 }
 
 .overlay .overlay__submit {
-    font-size: 30px;
-    width: 60px;
-    height: 60px;
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
     border: 1px solid grey;
     border-radius: 50%;
     color: yellow;
     background: green;
+}
+
+.overlay .overlay__submit:hover {
+    color: green;
+    background: yellow;
+    cursor: pointer;
 }

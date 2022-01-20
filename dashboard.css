@@ -1,0 +1,77 @@
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content:space-between;
+    width: min(95vw, 70vh);
+    min-width: 350px;
+    max-width: 100vw;
+    margin-bottom: 50px;
+    padding: 0;
+    border-radius: 10px;
+    background: rgb(187, 198, 199);
+}
+
+.players {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    margin-top: 6px;
+    width: 50%;
+}
+
+.player h2 {
+    margin: 0;
+    padding: 0;
+}
+
+.player__button {
+    font-weight: bold;
+    font-size: min(7vw, 40pt);
+    width: 80%;
+    padding: 6px;
+    margin: 4px;
+    text-decoration: none;
+    border: 1px solid grey;
+    border-radius: 10px;
+    transition: all 0.3s ease-out;
+}
+
+#player1 .player__score span,
+#player1 .player__button {
+    background: rgb(98, 255, 247, 1);
+    color: black;
+}
+
+#player2 .player__score span,
+#player2 .player__button {
+    background: rgb(255, 128, 128, 1);
+    color: black;
+}
+
+#player1 .player__button:hover,
+#player2 .player__button:hover {
+    background:green;
+    color: white;
+ }
+
+ .player__score {
+     display: flex;
+     align-items: center;
+ }
+
+.player__score span {
+    font-weight: bold;
+    font-size: 2em;
+    border-radius: 4px;
+    padding: 0 20px;
+    margin-left: 5px;
+    text-align: center;
+}

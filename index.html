@@ -8,26 +8,31 @@
     <script src="game.js" defer></script>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="player-name-form.css">
+    <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
 </head>
 <body>
     <div class="header">
         <h1>Tic Tac Toe</h1>
-    </div>
-    <div class="dashboard">
-        <div id="player1" class="player">
-            <h2>Player 1</h2>
-            <input type="button" id="player1-name" class="player__button" data-playerid="1">
-            Wins<span class="player__score">0</span>
-        </div>
         <div class="game-controls">
             <input type="button" class="game-controls__new-game" value="New Game">
             <input type="button" class="game-controls__new-players" value="New Players">
         </div>
-        <div id="player2" class="player">
-            <h2>Player 2</h2>
-            <input type="button" id="player2-name" class="player__button" data-playerid="2">
-            Wins<span class="player__score">0</span>
+    </div>
+    <div class="dashboard">
+        <div class="players">
+            <div id="player1" class="player">
+                <h2>Player 1</h2>
+                <div class="player__score">Score<span>0</span></div>
+                <input type="button" id="player1-name" class="player__button" data-playerid="1">
+            </div>
+            <div id="player2" class="player">
+                <div>
+                    <h2>Player 2</h2>
+                    <div class="player__score">Score<span>0</span></div>
+                </div>
+                <input type="button" id="player2-name" class="player__button" data-playerid="2">
+            </div>
         </div>
         <div id="name-popup" class="overlay">
             <form class="name-popup" action="" method="dialog">

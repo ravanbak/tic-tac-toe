@@ -347,8 +347,8 @@ const displayController = (function(game) {
         document.querySelector('#player2-name').value = game.getPlayerById(2).name;
 
         // scores:
-        document.querySelector('#player1 .player__score').textContent = game.getPlayerById(1).getScore();
-        document.querySelector('#player2 .player__score').textContent = game.getPlayerById(2).getScore();
+        document.querySelector('#player1 .player__score span').textContent = game.getPlayerById(1).getScore();
+        document.querySelector('#player2 .player__score span').textContent = game.getPlayerById(2).getScore();
     }
 
     function _updateGameBoard() {
