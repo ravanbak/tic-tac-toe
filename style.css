@@ -1,10 +1,27 @@
+:root {
+    --color-text1: black;
+    --color-game-btn-bg: dodgerblue;
+    --color-game-btn-fg: white;
+    --color-bg1: #dddddd;
+    --color-bg2: #bfbfbf;
+    --color-bg3: #eaeaea;
+    --color-player1-bg: rgb(98, 255, 247, 1);
+    --color-player2-bg: rgb(255, 128, 128, 1);
+    --color-player-current-bg: #aaffaa;
+    --color-player-current-border: #22ff22;
+    --color-winning-square-bg: green;
+    --color-winning-square-bg: white;
+    --color-border1: grey;
+    --color-gameboard-lines: #224477;
+}
+
 body {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    background: #DDDDDF;
+    background: var(--color-bg1);
     margin: 0;
     min-width: 360px;
 }
@@ -26,10 +43,10 @@ body {
     margin-left: 20px;
     padding: 5px 20px;
     border-radius: 5px;
-    background: dodgerblue;
-    color: white;
+    background: var(--color-game-btn-bg);
+    color: var(--color-game-btn-fg);
     font-size: 1.25em;
-    border: 1px solid grey;
+    border: 1px solid var(--color-border1);
 }
 
 .gameboard-container {
@@ -40,7 +57,7 @@ body {
     height: min(95vw, 70vh);
     min-width: 350px;
     max-width: 100vw;
-    background: rgb(187, 198, 199);
+    background: var(--color-bg2);
     border-radius: 10px;
     box-sizing: border-box;
     padding: 10px;
@@ -52,7 +69,7 @@ body {
     align-items: center;
     justify-content: center;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
-    background: #335577;
+    background: var(--color-gameboard-lines);
     border-radius: 12px;
     box-sizing: border-box;
 }
@@ -74,26 +91,26 @@ body {
     font-size: min(30vw, 16vh);
     margin: 0;
     padding: 0;
-    background: #DDDDDF;
+    background: var(--color-bg3);
     box-sizing: border-box;
 }
 
 .gameboard__square--x {
-    background: rgb(98, 255, 247, 1);
+    background: var(--color-player1-bg);
 }
 
 .gameboard__square--o {
-    background: rgb(255, 128, 128, 1);
+    background: var(--color-player2-bg);
 }
 
 .gameboard__square--winner-x {
-    background: green;
-    color:white;
+    background: var(--color-winning-square-bg);
+    color:var(--color-winning-square-fg);
 }
 
 .gameboard__square--winner-o {
-    background: green;
-    color:white;
+    background: var(--color-winning-square-bg);
+    color:var(--color-winning-square-fg);
 }
 
 .footer {
