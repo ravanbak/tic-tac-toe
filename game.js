@@ -175,6 +175,11 @@ const game = (function(gameBoardSize) {
         _currentPlayerID = 1;
     }
 
+    function resetScores() {
+        _player1.reset();
+        _player2.reset();
+    }
+
     function playerSetName(id, name) {
         switch (id) {
             case 1:
@@ -208,10 +213,12 @@ const game = (function(gameBoardSize) {
 
     return {
         newGame,
+        resetScores,
         get gameBoard() {
             return gameBoard;
         },
         getPlayerById,
+        getCurrentPlayer,
         playerSetName,
         playerTakeTurn,
         get winner() {
@@ -229,6 +236,7 @@ const displayController = (function(game) {
 
     const _setupButtons = (function() {
         document.querySelector('.game-controls__new-game').addEventListener('click', _newGame);
+        document.querySelector('.game-controls__reset-scores').addEventListener('click', _resetScores);
         document.querySelector('#player1-name').addEventListener('click', _showPlayerNameForm);
         document.querySelector('#player2-name').addEventListener('click', _showPlayerNameForm);
 
@@ -239,7 +247,8 @@ const displayController = (function(game) {
     function _showPlayerNameForm(e) {
         const overlay = document.querySelector('.overlay');
         overlay.style.display = 'flex';
-        overlay.style.opacity = 1;
+        overlay.style.transition = 'opacity 500ms';
+        overlay.style.opacity = '1';
         
         const playerID = parseInt(e.currentTarget.dataset.playerid);
 
@@ -266,7 +275,8 @@ const displayController = (function(game) {
     function _hidePlayerNamePopup() {
         const overlay = document.querySelector('.overlay');
         overlay.style.display = 'none';
-        overlay.style.opacity = 0;
+        overlay.style.transition = 'opacity 500ms';
+        overlay.style.opacity = '0';
     }
 
     const _createGameBoard = (function() {
@@ -341,6 +351,11 @@ const displayController = (function(game) {
         update();
     }
 
+    function _resetScores() {
+        game.resetScores();
+        update();
+    }
+
     function _updateDashBoard() {
         // names:
         document.querySelector('#player1-name').value = game.getPlayerById(1).name;
@@ -349,6 +364,14 @@ const displayController = (function(game) {
         // scores:
         document.querySelector('#player1 .player__score span').textContent = game.getPlayerById(1).getScore();
         document.querySelector('#player2 .player__score span').textContent = game.getPlayerById(2).getScore();
+
+        if (game.getCurrentPlayer().id === 1) {
+            document.querySelector('#player1.player').classList.add('pulse');
+            document.querySelector('#player2.player').classList.remove('pulse');
+        } else {
+            document.querySelector('#player2.player').classList.add('pulse');
+            document.querySelector('#player1.player').classList.remove('pulse');
+        }
     }
 
     function _updateGameBoard() {

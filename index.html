@@ -15,23 +15,25 @@
     <div class="header">
         <h1>Tic Tac Toe</h1>
         <div class="game-controls">
+            <input type="button" class="game-controls__reset-scores" value="Reset Scores">
             <input type="button" class="game-controls__new-game" value="New Game">
-            <input type="button" class="game-controls__new-players" value="New Players">
         </div>
     </div>
     <div class="dashboard">
         <div class="players">
             <div id="player1" class="player">
-                <h2>Player 1</h2>
-                <div class="player__score">Score<span>0</span></div>
                 <input type="button" id="player1-name" class="player__button" data-playerid="1">
+                <div class="player__score-wrapper">
+                    <div class="player__mark">X</div>
+                    <div class="player__score">wins<span>0</span></div>
+                </div>
             </div>
             <div id="player2" class="player">
-                <div>
-                    <h2>Player 2</h2>
-                    <div class="player__score">Score<span>0</span></div>
-                </div>
                 <input type="button" id="player2-name" class="player__button" data-playerid="2">
+                <div class="player__score-wrapper">
+                    <div class="player__mark">O</div>
+                    <div class="player__score">wins<span>0</span></div>
+                </div>
             </div>
         </div>
         <div id="name-popup" class="overlay">
