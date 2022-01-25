@@ -292,7 +292,7 @@ const displayController = (function(game) {
                 divSquare.setAttribute('data-row', i);
                 divSquare.setAttribute('data-col', j);
                 divSquare.addEventListener('click', game.playerTakeTurn);
-                divSquare.style.border = '3px solid #335577';
+                //divSquare.style.border = '3px solid #335577';
 
                 // hide outer edge borders
                 if (i === 0) {
