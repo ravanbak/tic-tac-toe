@@ -1,8 +1,9 @@
 .overlay {
-    display: none;
+    display: flex;
+    visibility: hidden;
+    opacity: 0;
     align-items:baseline;
     justify-content: center;
-    opacity: 0;
     position: fixed;
     top: 0;
     left: 0;
@@ -10,27 +11,29 @@
     height: 100%;
     overflow: auto;
     background: rgba(0, 0, 0, 0.7);
-    /*transition: opacity 500ms;*/
+    transition: opacity 0.5s;
 }
 
 .overlay .name-popup {
     display: flex;
     margin-top: 20vh;
     padding: 10px;
-    background: rgb(255, 220, 156);
-    border: solid 1px black;
+    background: var(--color-bg3);
+    border: solid 1px var(--color-border1);
     border-radius: 10px;
     font-size: 1.5em;
     text-align: center;
-    max-width: 90%;
-    /*transition: all 0.5s ease-in-out;*/
+    max-width: 85%;
+    min-width: 350px;
+    transition: opacity 0.5s ease-in-out;
 }
 
 .overlay .name-popup__input {
     display: flex;
     flex-direction: column;
     margin: 40px 20px;
-    max-width: 90%;
+    max-width: 80%;
+    min-width: 0;
 }
 
 .overlay .name-popup__buttons {
@@ -41,13 +44,14 @@
 }
 
 .overlay input {
-    margin: 10px 20px 0 0;
+    margin: 10px 0 0 0;
+    padding: 5px 0;
     font-size: 3rem;
     text-align: center;
     border-radius: 12px;
     background: #FCFCFC;
     color: black;
-    border: 1px solid black;
+    border: 1px solid var(--color-border1);
 }
 
 .overlay .overlay__close {
@@ -70,12 +74,12 @@
     margin-bottom: 10px;
     border: 1px solid grey;
     border-radius: 50%;
-    color: yellow;
-    background: green;
+    color: white;
+    background: dodgerblue;
 }
 
 .overlay .overlay__submit:hover {
-    color: green;
-    background: yellow;
+    color: white;
+    background: green;
     cursor: pointer;
 }

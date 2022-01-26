@@ -167,7 +167,7 @@ const game = (function(gameBoardSize) {
         }
     })(gameBoardSize);    
 
-    const isGameOver = () => (!!_winner);
+    const isGameOver = () => !!_winner || gameBoard.gameBoardIsFull();
 
     function newGame() {
         gameBoard.reset();
@@ -242,20 +242,23 @@ const displayController = (function(game) {
 
         document.querySelector('.overlay .name-popup').addEventListener('submit', _submitPlayerName);
         document.querySelector('.overlay .name-popup .overlay__close').addEventListener('click', _hidePlayerNamePopup);
+
+        document.querySelector('.overlay').addEventListener('transitionend', _setPlayerNamePopupVisibility);
     })();
     
     function _showPlayerNameForm(e) {
         const overlay = document.querySelector('.overlay');
-        overlay.style.display = 'flex';
-        overlay.style.transition = 'opacity 500ms';
+        overlay.style.visibility = 'visible';
         overlay.style.opacity = '1';
-        
+        overlay.dataset.visibility = 1;
+                
         const playerID = parseInt(e.currentTarget.dataset.playerid);
 
         document.querySelector('.name-popup__input label').textContent = `Player ${playerID}, what's your name?`;
 
-        const input = document.querySelector('.overlay input');
+        const input = document.querySelector('.name-popup__input input');
         input.value = game.getPlayerById(playerID).name;
+        input.focus();
         input.select();
 
         const popupForm = document.querySelector('.overlay .name-popup');
@@ -274,9 +277,17 @@ const displayController = (function(game) {
 
     function _hidePlayerNamePopup() {
         const overlay = document.querySelector('.overlay');
-        overlay.style.display = 'none';
-        overlay.style.transition = 'opacity 500ms';
         overlay.style.opacity = '0';
+        overlay.dataset.visibility = 0;
+    }
+
+    function _setPlayerNamePopupVisibility() {
+        const overlay = document.querySelector('.overlay');
+        if (overlay.dataset.visibility == 1) {
+            overlay.style.visibility = 'visible';
+        } else {
+            overlay.style.visibility = 'hidden';
+        }
     }
 
     const _createGameBoard = (function() {
@@ -365,13 +376,25 @@ const displayController = (function(game) {
         document.querySelector('#player1 .player__score span').textContent = game.getPlayerById(1).getScore();
         document.querySelector('#player2 .player__score span').textContent = game.getPlayerById(2).getScore();
 
-        if (game.getCurrentPlayer().id === 1) {
-            document.querySelector('#player1.player').classList.add('pulse');
-            document.querySelector('#player2.player').classList.remove('pulse');
+        document.querySelector('#player1.player').classList.remove('player--current');
+        document.querySelector('#player1.player').classList.remove('pulse-color');
+
+        document.querySelector('#player2.player').classList.remove('player--current');
+        document.querySelector('#player2.player').classList.remove('pulse-color');
+
+        document.querySelector('.game-controls__new-game').classList.remove('pulse-size');
+
+        if (game.isGameOver()) {
+            document.querySelector('.game-controls__new-game').classList.add('pulse-size');
         } else {
-            document.querySelector('#player2.player').classList.add('pulse');
-            document.querySelector('#player1.player').classList.remove('pulse');
+            _highlightCurrentPlayer();
         }
+    }
+
+    function _highlightCurrentPlayer() {
+        const player = document.querySelector('#player' + game.getCurrentPlayer().id + '.player');
+        player.classList.add('player--current');
+        player.classList.add('pulse-color');
     }
 
     function _updateGameBoard() {

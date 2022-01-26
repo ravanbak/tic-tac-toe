@@ -2,21 +2,24 @@
     --color-text1: black;
     --color-game-btn-bg: dodgerblue;
     --color-game-btn-fg: white;
+    --color-game-btn-highlight: blue;
     --color-bg1: #dddddd;
-    --color-bg2: #dddddd;
-    --color-bg3: #eaeaea;
+    --color-bg2: rgb(202, 202, 202);
+    --color-bg3: #eeeeee;
     --color-player1-bg: rgb(98, 255, 247, 1);
     --color-player2-bg: rgb(255, 128, 128, 1);
     --color-player-current-bg: #82ff82;
-    --color-player-current-border: #00ff00;
+    --color-player-current-border: #00dd00;
     --color-winning-square-bg: green;
-    --color-winning-square-fg: white;
+    --color-winning-square-fg: lightyellow;
     --color-border1: grey;
-    --color-gameboard-lines: #223344;
+    --color-gameboard-lines: #dddddd;
     --section-shadow: 0 5px 10px rgb(0, 0, 0, 0.3);
     --button-shadow: 5px 5px 10px rgb(0, 0, 0, 0.5);
-    --square-shadow: inset 0 6px 6px rgb(0, 0, 0, 0.2);
-    --text-shadow: 0 3px 6px rgb(0, 0, 0, 0.2);
+    --square-shadow: inset 5px 5px 9px rgb(0, 0, 0, 0.2);
+    --square-text-shadow: 5px 5px 8px rgb(0, 0, 0, 0.2);
+    --name-box-shadow: inset 2px 2px 4px rgb(0, 0, 0, 0.2);
+    --name-text-shadow: 2px 2px 4px rgb(0, 0, 0, 0.2);
 }
 
 body {
@@ -44,14 +47,18 @@ body {
 }
 
 .game-controls input {
-    margin-left: 10px;
-    padding: 5px 10px;
+    margin-left: 20px;
+    padding: 8px 10px;
     border-radius: 5px;
     background: var(--color-game-btn-bg);
     color: var(--color-game-btn-fg);
     font-size: 1em;
     border: 1px solid var(--color-border1);
     box-shadow: var(--button-shadow);
+}
+
+.game-controls input:hover {
+    background: var(--color-game-btn-highlight);
 }
 
 .gameboard-container {
@@ -62,7 +69,7 @@ body {
     height: min(95vw, 65vh);
     min-width: 350px;
     max-width: 100vw;
-    background: var(--color-bg2);
+    background: var(--color-bg1);
     border-radius: 10px;
     box-sizing: border-box;
     padding: 10px;
@@ -100,9 +107,9 @@ body {
     padding: 0;
     background: var(--color-bg3);
     box-sizing: border-box;
-    border: 3px solid var(--color-gameboard-lines);
+    border: 4px solid var(--color-gameboard-lines);
     box-shadow: var(--square-shadow);
-    text-shadow: var(--text-shadow);
+    text-shadow: var(--square-text-shadow);
 }
 
 .gameboard__square--x {

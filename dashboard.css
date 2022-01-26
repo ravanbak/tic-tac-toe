@@ -8,7 +8,7 @@
     max-width: 100vw;
     margin-bottom: 20px;
     border-radius: 10px;
-    background: var(--color-bg2);
+    background: var(--color-bg1);
     box-sizing: border-box;
     box-shadow: var(--section-shadow);
 }
@@ -26,11 +26,15 @@
     padding: 5px 0px 0;
     margin: 10px;
     width: 50%;
-    background: var(--color-bg3);
-    border: 15px solid var(--color-bg3);
+    background: var(--color-bg2);
+    border: 10px solid var(--color-bg2);
     border-radius: 10px;
     box-sizing: border-box;
     min-width: 0;
+}
+
+.player--current {
+    background: var(--color-player-current-bg);
 }
 
 .player__button {
@@ -42,7 +46,9 @@
     text-decoration: none;
     border: 1px solid var(--color-border1);
     border-radius: 10px;
-    /*transition: all 0.3s ease-out;*/
+    box-shadow: var(--name-box-shadow);
+    text-shadow: var(--name-text-shadow);    
+    transition: background-color 0.3s ease-out;
 }
 
 #player1 .player__score span,
@@ -61,25 +67,45 @@
 #player2 .player__button:hover {
     background:var(--color-winning-square-bg);
     color: var(--color-winning-square-fg);
- }
+}
 
-.pulse {
-    animation-name: pulse;
+#player1.player,
+#player2.player {
+   transition: background 0.3s ease-out;
+}
+
+.pulse-color {    
+    animation-name: pulse-color;
+}
+
+.game-controls .pulse-size {    
+    animation-name: pulse-size;
+}
+
+.pulse-color,
+.pulse-size {
     animation-duration: 0.66s;
     animation-timing-function: cubic-bezier(0.445, 0.05, 0.55, 0.95);
     animation-direction: alternate;
-    animation-iteration-count: infinite;
+    animation-iteration-count: infinite;    
 }
 
-@keyframes pulse {
+@keyframes pulse-color {
     0% {
-        background-color: var(--color-player-current-bg);
         border-color: var(--color-player-current-bg);
     }
     100% {
-        background-color: var(--color-player-current-bg);
         border-color: var(--color-player-current-border);
     }
+}
+
+@keyframes pulse-size {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.1);
+    }    
 }
 
 .player .player__score-wrapper {
@@ -113,4 +139,5 @@
     text-align: center;
     border: 1px solid var(--color-border1);
     border-radius: 10px;
+    box-shadow: var(--name-box-shadow);
 }
