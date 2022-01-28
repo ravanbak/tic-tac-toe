@@ -64,6 +64,7 @@ const game = (function(gameBoardSize) {
     const _player2 = Player(2, 'Player 2', markTypes.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
+    const getOpponentPlayer = () => (_currentPlayerID == 1) ? _player2 : _player1;
     let _winner = null;
 
     const WinnerInfo = (markType, winType, winLocation) => {
@@ -86,7 +87,7 @@ const game = (function(gameBoardSize) {
     
         let _squares = []; // size * size square grid
 
-        const getSize = () => size;
+        //const getSize = () => size;
         const squareIsBlank = (row, col) => _squares[row][col] === '';
         const squareSetMark = (row, col, markType) => _squares[row][col] = markType;
         const squareGetMark = (row, col) => _squares[row][col];
@@ -184,10 +185,15 @@ const game = (function(gameBoardSize) {
 
         return {
             reset,
-            getSize,
+            get size() {
+                return size;
+            },
             squareIsBlank,
             squareSetMark,
             squareGetMark,
+            get squares() {
+                return _squares;
+            },
             getRandomEmptySquare,
             gameBoardIsFull,
             getWinner,
@@ -263,7 +269,7 @@ const game = (function(gameBoardSize) {
         }
     
         const _createGameBoard = (function() {
-            const size = gameBoard.getSize();
+            const size = gameBoard.size;
     
             for (let i = 0; i < size; i++) {
                 let divRow = document.createElement('div');
@@ -318,7 +324,7 @@ const game = (function(gameBoardSize) {
                 case winnerType.col:
                     return (parseInt(col) === parseInt(w.winLocation));
                 case winnerType.diag:
-                    const size = game.gameBoard.getSize();
+                    const size = game.gameBoard.size;
                     if (parseInt(w.winLocation) === 0) {
                         return (row === col);
                     } else {
@@ -425,8 +431,10 @@ const game = (function(gameBoardSize) {
         _winner = null;
         _currentPlayerID = 1;
         _playerTimeElapsed = 0;
+        _gameLoopTimeStamp = 0;
 
-        _player2.isAI = true;
+        //_player1.isAI = true;
+        //_player2.isAI = false;
 
         window.requestAnimationFrame(_gameLoop);
 
@@ -450,10 +458,88 @@ const game = (function(gameBoardSize) {
     }
 
     function _aiPlayerTakeTurn() {
-        let {row, col} = gameBoard.getRandomEmptySquare();
-        gameBoard.squareSetMark(row, col, getCurrentPlayer().markType);
+        // let {row, col} = gameBoard.getRandomEmptySquare();
+        // gameBoard.squareSetMark(row, col, getCurrentPlayer().markType);
+        // _turnFinished();
+        // return;
+
+        let bestScore = -Infinity;
+        let bestMove;
+
+        for (let i = 0; i < gameBoard.size; i++) {
+            for (let j = 0; j < gameBoard.size; j++) {
+                if (gameBoard.squareIsBlank(i, j)) {
+                    let squares = gameBoard.squares;
+                    squares[i][j] = getCurrentPlayer().markType;
+                    let score = _minimax(squares, 1, false);
+                    squares[i][j] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = { i, j };
+                    }
+                }
+            }
+        }
+
+        console.log(`Best score: ${bestScore}`);
+
+        gameBoard.squareSetMark(bestMove.i, bestMove.j, getCurrentPlayer().markType);
 
         _turnFinished();
+    }
+
+    function _getMinimaxScore(winnerMark, playerMark) {
+        return (winnerMark === playerMark ? 100 : -100);
+    }
+
+    function _minimax(squares, depth, isMaximizing) {
+        // if (depth > 8) {
+        //     console.log(depth);
+        // }
+
+        // if (depth > 5) {
+        //     return isMaximizing ? -200 : 200;
+        // }
+        
+        const winner = gameBoard.getWinner();
+        
+        if (winner) {
+            return _getMinimaxScore(winner.getPlayer().markType, getCurrentPlayer().markType);
+        } else if (gameBoard.gameBoardIsFull()) {
+            return 0; //(isMaximizing) ? 10 : -10;
+        }
+
+        if (isMaximizing) {
+            let bestScore = -Infinity;
+    
+            for (let i = 0; i < gameBoard.size; i++) {
+                for (let j = 0; j < gameBoard.size; j++) {
+                    if (gameBoard.squareIsBlank(i, j)) {
+                        let squares = gameBoard.squares;
+                        squares[i][j] = getCurrentPlayer().markType;
+                        let score = _minimax(squares, depth + 1, false);
+                        bestScore = Math.max(score, bestScore);
+                        squares[i][j] = '';
+                    }
+                }
+            }
+            return bestScore / depth;
+        } else {
+            let bestScore = Infinity;
+    
+            for (let i = 0; i < gameBoard.size; i++) {
+                for (let j = 0; j < gameBoard.size; j++) {
+                    if (gameBoard.squareIsBlank(i, j)) {
+                        let squares = gameBoard.squares;
+                        squares[i][j] = getOpponentPlayer().markType;
+                        let score = _minimax(squares, depth + 1, true);
+                        bestScore = Math.min(score, bestScore);
+                        squares[i][j] = '';
+                    }
+                }
+            }
+            return bestScore / depth;
+        }
     }
 
     function humanPlayerTakeTurn(row, col) {
@@ -463,9 +549,8 @@ const game = (function(gameBoardSize) {
                 
         if (gameBoard.squareIsBlank(row, col)) {
             gameBoard.squareSetMark(row, col, getCurrentPlayer().markType);
+            _turnFinished();
         }
-
-        _turnFinished();
     }
 
     function _turnFinished() {
@@ -476,7 +561,7 @@ const game = (function(gameBoardSize) {
 
         _currentPlayerID = (_currentPlayerID % 2) + 1;
         _playerTimeElapsed = 0;
-        
+
         displayController.update();
     }
 
@@ -485,7 +570,7 @@ const game = (function(gameBoardSize) {
             return;
         }
 
-        const elapsed = (timeStamp - _gameLoopTimeStamp);
+        const elapsed = (_gameLoopTimeStamp === 0) ? 0 : (timeStamp - _gameLoopTimeStamp);
         _gameLoopTimeStamp = timeStamp;
 
         _playerTimeElapsed += elapsed;
@@ -509,6 +594,7 @@ const game = (function(gameBoardSize) {
         },
         getPlayerById,
         getCurrentPlayer,
+        getOpponentPlayer,
         playerSetName,
         humanPlayerTakeTurn,
         get winner() {
