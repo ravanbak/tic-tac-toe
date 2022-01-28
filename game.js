@@ -1,6 +1,6 @@
 'use strict';
 
-const GAME_BOARD_SIZE = 3;
+const GAME_BOARD_SIZE = 5;
 
 const markTypes = {
     x: Symbol('x'),
@@ -271,16 +271,23 @@ const game = (function(gameBoardSize) {
         const _createGameBoard = (function() {
             const size = gameBoard.size;
     
+            const cssFontPercent = parseInt((90 / size).toString());
+            const cssFontSize = `min(${cssFontPercent}vw, ${cssFontPercent * 0.66}vh)`;
+            const cssSquareSizePercent = (100 / size).toString() + '%';
+
             for (let i = 0; i < size; i++) {
                 let divRow = document.createElement('div');
                 divRow.classList.add('gameboard__row');
-    
+                divRow.style.height = cssSquareSizePercent;
+
                 for (let j = 0; j < size; j++) {
                     let divSquare = document.createElement('div');
                     divSquare.classList.add('gameboard__square');
                     divSquare.setAttribute('data-row', i);
                     divSquare.setAttribute('data-col', j);
                     divSquare.addEventListener('click', _playerTakeTurn);
+                    divSquare.style.width = cssSquareSizePercent;
+                    divSquare.style.fontSize = cssFontSize;
                     //divSquare.style.border = '3px solid #335577';
     
                     // hide outer edge borders
