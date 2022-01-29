@@ -1,6 +1,6 @@
 'use strict';
 
-const GAME_BOARD_SIZE = 5;
+const GAME_BOARD_SIZE = 3;
 
 const markTypes = {
     x: Symbol('x'),
@@ -58,6 +58,7 @@ const game = (function(gameBoardSize) {
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
     const AI_TURN_LENGTH = 1000; // milliseconds
+    const MAX_RECURSION_DEPTH = 15 - GAME_BOARD_SIZE * 2;
 
     let _currentPlayerID;
     const _player1 = Player(1, 'Player 1', markTypes.x);
@@ -91,7 +92,9 @@ const game = (function(gameBoardSize) {
         const squareIsBlank = (row, col) => _squares[row][col] === '';
         const squareSetMark = (row, col, markType) => _squares[row][col] = markType;
         const squareGetMark = (row, col) => _squares[row][col];
-
+        const gameBoardIsFull = () => _squares.filter(row => row.filter(square => square == '').length === 0).length == size;
+        const gameBoardIsEmpty = () => _squares.filter(row => row.filter(square => square == '').length === size).length == size;
+        
         function reset() {
             // create gameboard array with all elements empty
             _squares = [];
@@ -104,10 +107,6 @@ const game = (function(gameBoardSize) {
             }
         }
         reset();
-
-        function gameBoardIsFull() {
-            return _squares.filter(row => row.filter(square => square == '').length === 0).length == size;
-        }
         
         function getRandomEmptySquare() {
             if (gameBoardIsFull()) {
@@ -196,6 +195,7 @@ const game = (function(gameBoardSize) {
             },
             getRandomEmptySquare,
             gameBoardIsFull,
+            gameBoardIsEmpty,
             getWinner,
         }
     })(gameBoardSize);    
@@ -440,8 +440,8 @@ const game = (function(gameBoardSize) {
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
-        //_player1.isAI = true;
-        //_player2.isAI = false;
+        _player1.isAI = true;
+        _player2.isAI = true;
 
         window.requestAnimationFrame(_gameLoop);
 
@@ -470,83 +470,75 @@ const game = (function(gameBoardSize) {
         // _turnFinished();
         // return;
 
-        let bestScore = -Infinity;
         let bestMove;
 
-        for (let i = 0; i < gameBoard.size; i++) {
-            for (let j = 0; j < gameBoard.size; j++) {
-                if (gameBoard.squareIsBlank(i, j)) {
-                    let squares = gameBoard.squares;
-                    squares[i][j] = getCurrentPlayer().markType;
-                    let score = _minimax(squares, 1, false);
-                    squares[i][j] = '';
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { i, j };
+        if (gameBoard.gameBoardIsEmpty()) {
+            // speed up the very first move, just choose a random corner square:
+            const i = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
+            const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
+            bestMove = { i, j };
+        }
+        else {
+            // use minimax to find best move
+            let bestScore = -Infinity;
+            let squares = gameBoard.squares;
+
+            for (let i = 0; i < gameBoard.size; i++) {
+                for (let j = 0; j < gameBoard.size; j++) {
+                    if (gameBoard.squareIsBlank(i, j)) {
+                        squares[i][j] = getCurrentPlayer().markType;
+                        let score = _minimax(squares, 1, false);
+                        squares[i][j] = '';
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = { i, j };
+                        }
                     }
                 }
             }
         }
-
-        console.log(`Best score: ${bestScore}`);
+        //console.log(`Best score: ${bestScore}`);
 
         gameBoard.squareSetMark(bestMove.i, bestMove.j, getCurrentPlayer().markType);
 
         _turnFinished();
     }
 
-    function _getMinimaxScore(winnerMark, playerMark) {
-        return (winnerMark === playerMark ? 100 : -100);
-    }
-
     function _minimax(squares, depth, isMaximizing) {
-        // if (depth > 8) {
-        //     console.log(depth);
-        // }
-
-        // if (depth > 5) {
-        //     return isMaximizing ? -200 : 200;
-        // }
+        if (depth >= MAX_RECURSION_DEPTH) {
+             return isMaximizing ? -200 : 200;
+        }
         
         const winner = gameBoard.getWinner();
         
         if (winner) {
-            return _getMinimaxScore(winner.getPlayer().markType, getCurrentPlayer().markType);
-        } else if (gameBoard.gameBoardIsFull()) {
-            return 0; //(isMaximizing) ? 10 : -10;
+            return (winner.getPlayer().markType === getCurrentPlayer().markType) ? 100 : -100;
+        } 
+        else if (gameBoard.gameBoardIsFull()) {
+            return 0;
         }
 
-        if (isMaximizing) {
-            let bestScore = -Infinity;
-    
-            for (let i = 0; i < gameBoard.size; i++) {
-                for (let j = 0; j < gameBoard.size; j++) {
-                    if (gameBoard.squareIsBlank(i, j)) {
-                        let squares = gameBoard.squares;
-                        squares[i][j] = getCurrentPlayer().markType;
-                        let score = _minimax(squares, depth + 1, false);
+        let bestScore = isMaximizing ? -Infinity : Infinity;
+        const markType = isMaximizing ? getCurrentPlayer().markType : getOpponentPlayer().markType;
+
+        for (let i = 0; i < gameBoard.size; i++) {
+            for (let j = 0; j < gameBoard.size; j++) {
+                if (gameBoard.squareIsBlank(i, j)) {
+                    squares[i][j] = markType;
+                    let score = _minimax(squares, depth + 1, !isMaximizing);
+                    squares[i][j] = '';
+
+                    if (isMaximizing) {
                         bestScore = Math.max(score, bestScore);
-                        squares[i][j] = '';
+                    } else {
+                        bestScore = Math.min(score, bestScore);                            
                     }
                 }
             }
-            return bestScore / depth;
-        } else {
-            let bestScore = Infinity;
-    
-            for (let i = 0; i < gameBoard.size; i++) {
-                for (let j = 0; j < gameBoard.size; j++) {
-                    if (gameBoard.squareIsBlank(i, j)) {
-                        let squares = gameBoard.squares;
-                        squares[i][j] = getOpponentPlayer().markType;
-                        let score = _minimax(squares, depth + 1, true);
-                        bestScore = Math.min(score, bestScore);
-                        squares[i][j] = '';
-                    }
-                }
-            }
-            return bestScore / depth;
         }
+
+        return bestScore / depth;
     }
 
     function humanPlayerTakeTurn(row, col) {
