@@ -1,6 +1,6 @@
 'use strict';
 
-const GAME_BOARD_SIZE = 3;
+const GAME_BOARD_SIZE = 5;
 
 const markTypes = {
     x: Symbol('x'),
@@ -10,7 +10,8 @@ const markTypes = {
 const winnerType = {
     row: Symbol('row'),
     col: Symbol('col'),
-    diag: Symbol('diag'),
+    diagUp: Symbol('diagUp'),
+    diagDown: Symbol('diagDown'),
 }
 
 const Player = (id, name, markType) => {
@@ -58,7 +59,7 @@ const game = (function(gameBoardSize) {
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
     const AI_TURN_LENGTH = 1000; // milliseconds
-    const MAX_RECURSION_DEPTH = 15 - GAME_BOARD_SIZE * 2;
+    const MAX_RECURSION_DEPTH = 9; // 15 - GAME_BOARD_SIZE * 2;
 
     let _currentPlayerID;
     const _player1 = Player(1, 'Player 1', markTypes.x);
@@ -68,7 +69,7 @@ const game = (function(gameBoardSize) {
     const getOpponentPlayer = () => (_currentPlayerID == 1) ? _player2 : _player1;
     let _winner = null;
 
-    const WinnerInfo = (markType, winType, winLocation) => {
+    const WinnerInfo = (markType, winType, winRow, winCol) => {
         const getPlayer = () => {
             switch (markType) {
                 case _player1.markType:
@@ -80,7 +81,8 @@ const game = (function(gameBoardSize) {
 
         return { getPlayer,
                  winType, 
-                 winLocation };
+                 winRow,
+                 winCol, };
     }
 
     const gameBoard = (function(size) {
@@ -123,6 +125,92 @@ const game = (function(gameBoardSize) {
             return {row, col};
         }
 
+        function _getMarksBeforeAfter(winType, row, col) {
+            switch (winType) {
+                case winnerType.row:
+                    if (col < 1 || col >= size - 1) {
+                        return null;
+                    }
+                    break;
+                case winnerType.col:
+                    if (row < 1 || row >= size - 1) {
+                        return null;
+                    }
+                    break;
+                case winnerType.diagUp:
+                case winnerType.diagDown:
+                    if (row < 1 || col < 1) {
+                        return null;
+                    } else if (row >= size - 1 || col >= size - 1) {
+                        return null;
+                    }
+                    break;
+            }
+
+            let markBefore = '';
+            let markAfter = '';
+
+            switch (winType) {
+                case winnerType.row:
+                    markBefore = _squares[row][col - 1];
+                    markAfter = _squares[row][col + 1];
+                    break;
+                
+                case winnerType.col:
+                    markBefore = _squares[row - 1][col];
+                    markAfter = _squares[row + 1][col];
+                    break;
+
+                case winnerType.diagUp:
+                    markBefore = _squares[row + 1][col - 1];
+                    markAfter = _squares[row - 1][col + 1];
+                    break;
+
+                case winnerType.diagDown:
+                    markBefore = _squares[row - 1][col - 1];
+                    markAfter = _squares[row + 1][col + 1];
+                    break;    
+            }
+
+            return { markBefore, markAfter };
+        }
+
+        function _checkForWin(winType, row, col) {
+            let adjacentMarks = _getMarksBeforeAfter(winType, row, col);
+            
+            if (adjacentMarks) {
+                if (_squares[row][col] === adjacentMarks.markBefore) {
+                    if (_squares[row][col] === adjacentMarks.markAfter) {
+                        return WinnerInfo(_squares[row][col], winType, row, col);
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        function getWinner3() {
+            const winTypes = [winnerType.row, 
+                              winnerType.col, 
+                              winnerType.diagUp, 
+                              winnerType.diagDown];
+
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (squareIsBlank(i, j)) {
+                        continue;
+                    }
+
+                    for (let k = 0; k < winTypes.length; k++) {
+                        let winnerInfo = _checkForWin(winTypes[k], i, j);
+                        if (winnerInfo) {
+                            return winnerInfo;
+                        }
+                    }
+                }
+            }
+        }
+
         function getWinner() {
             // check for 'size' squares with the same mark 
             // in a line horizontally, vertically, or diagonally.
@@ -130,26 +218,26 @@ const game = (function(gameBoardSize) {
             // return WinnerInfo object or null
 
             // check for diagonal winner
-            let winnerDiag1 = true; // diagonal containing square (0, 0)
-            let winnerDiag2 = true; // diagonal containing square (size - 1, 0)
-            let markDiag1 = _squares[0][0];
-            let markDiag2 = _squares[size - 1][0];
+            let winnerDiagDown = true; // diagonal containing square (0, 0)
+            let winnerDiagUp = true; // diagonal containing square (size - 1, 0)
+            let markDiagDown = _squares[0][0];
+            let markDiagUp = _squares[size - 1][0];
             for (let i = 1; i < size; i++) {
-                if (!markDiag1 || _squares[i][i] !== markDiag1) {
-                    winnerDiag1 = false;
+                if (!markDiagDown || _squares[i][i] !== markDiagDown) {
+                    winnerDiagDown = false;
                 }
-                if (!markDiag2 || _squares[size - 1 - i][i] !== markDiag2) {
-                    winnerDiag2 = false;
+                if (!markDiagUp || _squares[size - 1 - i][i] !== markDiagUp) {
+                    winnerDiagUp = false;
                 }
-                if (!(winnerDiag1 || winnerDiag2)) {
+                if (!(winnerDiagDown || winnerDiagUp)) {
                     break;
                 }
             }
 
-            if (winnerDiag1) {
-                return WinnerInfo(markDiag1, winnerType.diag, 0);
-            } else if (winnerDiag2) {
-                return WinnerInfo(markDiag2, winnerType.diag, 1);
+            if (winnerDiagDown) {
+                return WinnerInfo(markDiagDown, winnerType.diagDown, 0);
+            } else if (winnerDiagUp) {
+                return WinnerInfo(markDiagUp, winnerType.diagUp, 1);
             }
 
             // check for vertical or horizontal line of the same mark
@@ -197,6 +285,7 @@ const game = (function(gameBoardSize) {
             gameBoardIsFull,
             gameBoardIsEmpty,
             getWinner,
+            getWinner3,
         }
     })(gameBoardSize);    
 
@@ -327,16 +416,13 @@ const game = (function(gameBoardSize) {
     
             switch (w.winType) {
                 case winnerType.row:
-                    return (parseInt(row) === parseInt(w.winLocation));
+                    return (parseInt(row) === parseInt(w.winRow));
                 case winnerType.col:
-                    return (parseInt(col) === parseInt(w.winLocation));
-                case winnerType.diag:
-                    const size = game.gameBoard.size;
-                    if (parseInt(w.winLocation) === 0) {
-                        return (row === col);
-                    } else {
-                        return (parseInt(row) === (size - 1 - parseInt(col)));
-                    }
+                    return (parseInt(col) === parseInt(w.winCol));
+                case winnerType.diagDown:
+                    return (parseInt(row) === w.winRow && parseInt(col) === w.winCol);
+                case winnerType.diagUp:
+                    return (parseInt(row) === w.winRow && parseInt(col) === w.winCol);
                 default:
                     return false;
             }
@@ -440,8 +526,8 @@ const game = (function(gameBoardSize) {
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
-        _player1.isAI = true;
-        _player2.isAI = true;
+        //_player1.isAI = true;
+        //_player2.isAI = true;
 
         window.requestAnimationFrame(_gameLoop);
 
@@ -506,12 +592,12 @@ const game = (function(gameBoardSize) {
     }
 
     function _minimax(squares, depth, isMaximizing) {
-        if (depth >= MAX_RECURSION_DEPTH) {
+        if (depth > MAX_RECURSION_DEPTH) {
              return isMaximizing ? -200 : 200;
         }
         
         const winner = gameBoard.getWinner();
-        
+                
         if (winner) {
             return (winner.getPlayer().markType === getCurrentPlayer().markType) ? 100 : -100;
         } 
