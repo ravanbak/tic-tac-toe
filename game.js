@@ -7,7 +7,7 @@ const markTypes = {
     o: Symbol('o'),
 }
 
-const winnerType = {
+const directionType = {
     row: Symbol('row'),
     col: Symbol('col'),
     diagUp: Symbol('diagUp'),
@@ -60,6 +60,7 @@ const game = (function(gameBoardSize) {
     let _playerTimeElapsed = 0;
     const AI_TURN_LENGTH = 1000; // milliseconds
     const MAX_RECURSION_DEPTH = 9; // 15 - GAME_BOARD_SIZE * 2;
+    const MIN_WIN_SQUARES = 4; // at least this many marks in a row wins the game
 
     let _currentPlayerID;
     const _player1 = Player(1, 'Player 1', markTypes.x);
@@ -69,7 +70,7 @@ const game = (function(gameBoardSize) {
     const getOpponentPlayer = () => (_currentPlayerID == 1) ? _player2 : _player1;
     let _winner = null;
 
-    const WinnerInfo = (markType, winType, winRow, winCol) => {
+    const WinnerInfo = (markType, winningSquares) => {
         const getPlayer = () => {
             switch (markType) {
                 case _player1.markType:
@@ -79,10 +80,10 @@ const game = (function(gameBoardSize) {
             } 
         }
 
-        return { getPlayer,
-                 winType, 
-                 winRow,
-                 winCol, };
+        return {
+            getPlayer,
+            winningSquares, 
+        };
     }
 
     const gameBoard = (function(size) {
@@ -90,7 +91,6 @@ const game = (function(gameBoardSize) {
     
         let _squares = []; // size * size square grid
 
-        //const getSize = () => size;
         const squareIsBlank = (row, col) => _squares[row][col] === '';
         const squareSetMark = (row, col, markType) => _squares[row][col] = markType;
         const squareGetMark = (row, col) => _squares[row][col];
@@ -125,149 +125,102 @@ const game = (function(gameBoardSize) {
             return {row, col};
         }
 
-        function _getMarksBeforeAfter(winType, row, col) {
+        function _getNextRowCol(loc, winType) {
             switch (winType) {
-                case winnerType.row:
-                    if (col < 1 || col >= size - 1) {
-                        return null;
-                    }
-                    break;
-                case winnerType.col:
-                    if (row < 1 || row >= size - 1) {
-                        return null;
-                    }
-                    break;
-                case winnerType.diagUp:
-                case winnerType.diagDown:
-                    if (row < 1 || col < 1) {
-                        return null;
-                    } else if (row >= size - 1 || col >= size - 1) {
-                        return null;
-                    }
-                    break;
-            }
-
-            let markBefore = '';
-            let markAfter = '';
-
-            switch (winType) {
-                case winnerType.row:
-                    markBefore = _squares[row][col - 1];
-                    markAfter = _squares[row][col + 1];
+                case directionType.row:
+                    loc.col += 1;
                     break;
                 
-                case winnerType.col:
-                    markBefore = _squares[row - 1][col];
-                    markAfter = _squares[row + 1][col];
+                case directionType.col:
+                    loc.row += 1;
                     break;
 
-                case winnerType.diagUp:
-                    markBefore = _squares[row + 1][col - 1];
-                    markAfter = _squares[row - 1][col + 1];
+                case directionType.diagUp:
+                    loc.row -= 1;
+                    loc.col += 1;
                     break;
 
-                case winnerType.diagDown:
-                    markBefore = _squares[row - 1][col - 1];
-                    markAfter = _squares[row + 1][col + 1];
+                case directionType.diagDown:
+                    loc.row += 1;
+                    loc.col += 1;
                     break;    
             }
 
-            return { markBefore, markAfter };
+            return loc;
         }
 
-        function _checkForWin(winType, row, col) {
-            let adjacentMarks = _getMarksBeforeAfter(winType, row, col);
-            
-            if (adjacentMarks) {
-                if (_squares[row][col] === adjacentMarks.markBefore) {
-                    if (_squares[row][col] === adjacentMarks.markAfter) {
-                        return WinnerInfo(_squares[row][col], winType, row, col);
-                    }
+        function _matchNextNSquares(n, loc, direction) {
+            // Starting at square 'loc', check the next 'n' adjacent 
+            // squares and return all locations if they match.
+
+            if (squareIsBlank(loc.row, loc.col)) {
+                return null;
+            }
+
+            let winningLocations = [ { row:loc.row, col:loc.col } ];
+
+            const markType = _squares[loc.row][loc.col];
+
+            for (let i = 0; i < n; i++) {
+                let nextSquare = _getNextRowCol(loc, direction);
+                if (_squares[nextSquare.row][nextSquare.col] === markType) {
+                    loc = nextSquare;
+                    winningLocations.push({ row:loc.row, col:loc.col } );
+                } 
+                else {
+                    return null;
                 }
             }
-            
-            return null;
+
+            return winningLocations;
         }
 
-        function getWinner3() {
-            const winTypes = [winnerType.row, 
-                              winnerType.col, 
-                              winnerType.diagUp, 
-                              winnerType.diagDown];
+        function getWinnerN(numSquaresToWin) {
+            // Check for 'numSquaresToWin' matching marks in a row
+            // in all directions (up, down, diagonal) starting from
+            // the top rows and left columns of the gameboard.
 
+            const n = numSquaresToWin - 1;
+
+            // We only need to check squares where there are 'n' more
+            // squares available on the board in the given direction.
+            const lastIndex = size - numSquaresToWin + 1;
+
+            let direction;
+            let matchingSquares;
+
+            // check for row or column winner
             for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size; j++) {
-                    if (squareIsBlank(i, j)) {
-                        continue;
+                for (let j = 0; j < lastIndex; j++) {
+                    direction = directionType.row;
+
+                    matchingSquares = _matchNextNSquares(n, {row:i, col:j}, direction);
+                    if (matchingSquares) {
+                        return WinnerInfo(_squares[i][j], matchingSquares);
+                    }
+                    
+                    direction = directionType.col;
+                    matchingSquares = _matchNextNSquares(n, {row:j, col:i}, direction);
+                    if (matchingSquares) {
+                        return WinnerInfo(_squares[j][i], matchingSquares);
                     }
 
-                    for (let k = 0; k < winTypes.length; k++) {
-                        let winnerInfo = _checkForWin(winTypes[k], i, j);
-                        if (winnerInfo) {
-                            return winnerInfo;
-                        }
+                    if (i < lastIndex && j < lastIndex) {
+                        direction = directionType.diagDown;
+                        matchingSquares = _matchNextNSquares(n, {row:i, col:j}, direction);
+                        if (matchingSquares) {
+                            return WinnerInfo(_squares[i][j], matchingSquares);
+                        } 
+                        
+                        let row = size - 1 - i;
+                        direction = directionType.diagUp;
+                        matchingSquares = _matchNextNSquares(n, {row:row, col:j}, direction);
+                        if (matchingSquares) {
+                            return WinnerInfo(_squares[row][j], matchingSquares);
+                        }   
                     }
                 }
             }
-        }
-
-        function getWinner() {
-            // check for 'size' squares with the same mark 
-            // in a line horizontally, vertically, or diagonally.
-            //
-            // return WinnerInfo object or null
-
-            // check for diagonal winner
-            let winnerDiagDown = true; // diagonal containing square (0, 0)
-            let winnerDiagUp = true; // diagonal containing square (size - 1, 0)
-            let markDiagDown = _squares[0][0];
-            let markDiagUp = _squares[size - 1][0];
-            for (let i = 1; i < size; i++) {
-                if (!markDiagDown || _squares[i][i] !== markDiagDown) {
-                    winnerDiagDown = false;
-                }
-                if (!markDiagUp || _squares[size - 1 - i][i] !== markDiagUp) {
-                    winnerDiagUp = false;
-                }
-                if (!(winnerDiagDown || winnerDiagUp)) {
-                    break;
-                }
-            }
-
-            if (winnerDiagDown) {
-                return WinnerInfo(markDiagDown, winnerType.diagDown, 0);
-            } else if (winnerDiagUp) {
-                return WinnerInfo(markDiagUp, winnerType.diagUp, 1);
-            }
-
-            // check for vertical or horizontal line of the same mark
-            for (let i = 0; i < size; i++) {
-                let j = 0;
-                let markRowHeader = _squares[i][j];
-                let markColHeader = _squares[j][i];
-                
-                let winnerRow = true;
-                let winnerCol = true;
-                for (j = 1; j < size; j++) {
-                    if (!markRowHeader || _squares[i][j] !== markRowHeader) {
-                        winnerRow = false;
-                    }
-                    if (!markColHeader || _squares[j][i] !== markColHeader) {
-                        winnerCol = false;
-                    }
-                    if (!(winnerRow || winnerCol)) {
-                        break;
-                    }
-                }
-
-                if (winnerRow) {
-                    return WinnerInfo(markRowHeader, winnerType.row, i);
-                } else if (winnerCol) {
-                    return WinnerInfo(markColHeader, winnerType.col, i);
-                }
-            }
-            
-            return null;
         }
 
         return {
@@ -284,8 +237,7 @@ const game = (function(gameBoardSize) {
             getRandomEmptySquare,
             gameBoardIsFull,
             gameBoardIsEmpty,
-            getWinner,
-            getWinner3,
+            getWinnerN,
         }
     })(gameBoardSize);    
 
@@ -406,28 +358,7 @@ const game = (function(gameBoardSize) {
             // prevent highlighting 'x' or 'o' text on gameboard:
             _divGameboard.addEventListener('mousedown', (e) => { e.preventDefault() });
         })();
-    
-        function _isWinningSquare(row, col) {
-            if (!game.winner) {
-                return false;
-            }
-    
-            const w = game.winner;
-    
-            switch (w.winType) {
-                case winnerType.row:
-                    return (parseInt(row) === parseInt(w.winRow));
-                case winnerType.col:
-                    return (parseInt(col) === parseInt(w.winCol));
-                case winnerType.diagDown:
-                    return (parseInt(row) === w.winRow && parseInt(col) === w.winCol);
-                case winnerType.diagUp:
-                    return (parseInt(row) === w.winRow && parseInt(col) === w.winCol);
-                default:
-                    return false;
-            }
-        }
-    
+   
         function _newGame() {
             game.newGame();
             update();
@@ -469,8 +400,8 @@ const game = (function(gameBoardSize) {
         }
     
         function _updateGameBoard() {
-            const squares = document.querySelectorAll('.gameboard__square');
-            squares.forEach(
+            const squareDivs = document.querySelectorAll('.gameboard__square');
+            squareDivs.forEach(
                 function(div) {
                     let i = div.dataset.row;
                     let j = div.dataset.col;
@@ -489,21 +420,22 @@ const game = (function(gameBoardSize) {
                             div.classList.remove('gameboard__square--x', 'gameboard__square--o');
                             div.textContent = '';
                     }
-    
-                    if (_isWinningSquare(i, j)) {
-                        if (game.winner.getPlayer().markType === markTypes.x) {
-                            div.classList.add('gameboard__square--winner-x');
-                        } else {
-                            div.classList.add('gameboard__square--winner-o');
-                        }
-                        
-                    }
-                    else {
-                        div.classList.remove('gameboard__square--winner-x');
-                        div.classList.remove('gameboard__square--winner-o');
-                    }
+                    
+                    div.classList.remove('gameboard__square--winner');
                 }
             );
+
+            if (game.winner) {
+                const winningLocations = game.winner.winningSquares;
+                for (let i = 0; i < winningLocations.length; i++) {
+                    let row = winningLocations[i].row;
+                    let col = winningLocations[i].col;
+                    let s = '.gameboard__square[data-row=' + "'" + row.toString() + "'" + ']';
+                    s += '[data-col=' + "'" + col.toString() + "'" + ']';
+                    let div = document.querySelector(s);
+                    div.classList.add('gameboard__square--winner');
+                }
+            }
         }
     
         function update() {
@@ -596,7 +528,7 @@ const game = (function(gameBoardSize) {
              return isMaximizing ? -200 : 200;
         }
         
-        const winner = gameBoard.getWinner();
+        const winner = gameBoard.getWinnerN(MIN_WIN_SQUARES);
                 
         if (winner) {
             return (winner.getPlayer().markType === getCurrentPlayer().markType) ? 100 : -100;
@@ -639,7 +571,7 @@ const game = (function(gameBoardSize) {
     }
 
     function _turnFinished() {
-        _winner = gameBoard.getWinner();
+        _winner = gameBoard.getWinnerN(MIN_WIN_SQUARES);
         if (_winner) {
             _winner.getPlayer().win();
         }

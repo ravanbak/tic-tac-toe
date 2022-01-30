@@ -117,12 +117,7 @@ body {
     background: var(--color-player2-bg);
 }
 
-.gameboard__square--winner-x {
-    background: var(--color-winning-square-bg);
-    color:var(--color-winning-square-fg);
-}
-
-.gameboard__square--winner-o {
+.gameboard__square--winner {
     background: var(--color-winning-square-bg);
     color:var(--color-winning-square-fg);
 }
