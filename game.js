@@ -1,6 +1,6 @@
 'use strict';
 
-const GAME_BOARD_SIZE = 5;
+const GAME_BOARD_SIZE = 3;
 
 const markTypes = {
     x: Symbol('x'),
@@ -56,11 +56,12 @@ const Player = (id, name, markType) => {
 const game = (function(gameBoardSize) {
     'use strict';
     
+    let _gamesPlayed = 0;
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
     const AI_TURN_LENGTH = 1000; // milliseconds
-    const MAX_RECURSION_DEPTH = 9; // 15 - GAME_BOARD_SIZE * 2;
-    const MIN_WIN_SQUARES = 4; // at least this many marks in a row wins the game
+    const MAX_RECURSION_DEPTH = (gameBoardSize === 3) ? 9 : 5; // 15 - GAME_BOARD_SIZE * 2;
+    const MIN_WIN_SQUARES = (gameBoardSize === 3) ? 3 : 4; // at least this many marks in a row wins the game
 
     let _currentPlayerID;
     const _player1 = Player(1, 'Player 1', markTypes.x);
@@ -125,28 +126,48 @@ const game = (function(gameBoardSize) {
             return {row, col};
         }
 
-        function _getNextRowCol(loc, winType) {
-            switch (winType) {
+        function _getAdjacentSquare(loc, direction, factor) {
+            const offset = 1 * factor; // offset 1 = next, -1 = previous
+
+            switch (direction) {
                 case directionType.row:
-                    loc.col += 1;
+                    loc.col += offset;
                     break;
                 
                 case directionType.col:
-                    loc.row += 1;
+                    loc.row += offset;
                     break;
 
                 case directionType.diagUp:
-                    loc.row -= 1;
-                    loc.col += 1;
+                    loc.row -= offset;
+                    loc.col += offset;
                     break;
 
                 case directionType.diagDown:
-                    loc.row += 1;
-                    loc.col += 1;
+                    loc.row += offset;
+                    loc.col += offset;
                     break;    
             }
 
             return loc;
+        }
+
+        function adjacentSquareHasMark(loc) {
+            const rowFirst = Math.max(0, loc.row - 1);
+            const rowLast = Math.min(size - 1, loc.row + 1);
+
+            const colFirst = Math.max(0, loc.col - 1);
+            const colLast = Math.min(size - 1, loc.col + 1);
+
+            for (let i = rowFirst; i <= rowLast; i++) {
+                for (let j = colFirst; j <= colLast; j++) {
+                    if (_squares[i][j] !== '') {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         function _matchNextNSquares(n, loc, direction) {
@@ -157,15 +178,15 @@ const game = (function(gameBoardSize) {
                 return null;
             }
 
-            let winningLocations = [ { row:loc.row, col:loc.col } ];
+            let winningLocations = [ { row:loc.row, col:loc.col } ]; // save a copy of 'loc'
 
             const markType = _squares[loc.row][loc.col];
 
             for (let i = 0; i < n; i++) {
-                let nextSquare = _getNextRowCol(loc, direction);
+                let nextSquare = _getAdjacentSquare(loc, direction, 1);
                 if (_squares[nextSquare.row][nextSquare.col] === markType) {
                     loc = nextSquare;
-                    winningLocations.push({ row:loc.row, col:loc.col } );
+                    winningLocations.push({ row:loc.row, col:loc.col } ); // save a copy of next 'loc'
                 } 
                 else {
                     return null;
@@ -237,6 +258,7 @@ const game = (function(gameBoardSize) {
             getRandomEmptySquare,
             gameBoardIsFull,
             gameBoardIsEmpty,
+            adjacentSquareHasMark,
             getWinnerN,
         }
     })(gameBoardSize);    
@@ -459,7 +481,7 @@ const game = (function(gameBoardSize) {
         _gameLoopTimeStamp = 0;
 
         //_player1.isAI = true;
-        //_player2.isAI = true;
+        _player2.isAI = true;
 
         window.requestAnimationFrame(_gameLoop);
 
@@ -469,6 +491,7 @@ const game = (function(gameBoardSize) {
     function resetScores() {
         _player1.reset();
         _player2.reset();
+        _gamesPlayed = 0;
     }
 
     function playerSetName(id, name) {
@@ -490,7 +513,7 @@ const game = (function(gameBoardSize) {
 
         let bestMove;
 
-        if (gameBoard.gameBoardIsEmpty()) {
+        if (gameBoard.size === 3 && gameBoard.gameBoardIsEmpty()) {
             // speed up the very first move, just choose a random corner square:
             const i = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
             const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
@@ -504,19 +527,20 @@ const game = (function(gameBoardSize) {
             for (let i = 0; i < gameBoard.size; i++) {
                 for (let j = 0; j < gameBoard.size; j++) {
                     if (gameBoard.squareIsBlank(i, j)) {
-                        squares[i][j] = getCurrentPlayer().markType;
-                        let score = _minimax(squares, 1, false);
-                        squares[i][j] = '';
-                        
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestMove = { i, j };
+                        if (gameBoard.adjacentSquareHasMark({ row: i, col: j })) {
+                            squares[i][j] = getCurrentPlayer().markType;
+                            let score = _minimax(squares, 1, false);
+                            squares[i][j] = '';
+
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestMove = { i, j };
+                            }
                         }
                     }
                 }
             }
         }
-        //console.log(`Best score: ${bestScore}`);
 
         gameBoard.squareSetMark(bestMove.i, bestMove.j, getCurrentPlayer().markType);
 
@@ -525,7 +549,7 @@ const game = (function(gameBoardSize) {
 
     function _minimax(squares, depth, isMaximizing) {
         if (depth > MAX_RECURSION_DEPTH) {
-             return isMaximizing ? -200 : 200;
+             return 0;
         }
         
         const winner = gameBoard.getWinnerN(MIN_WIN_SQUARES);
@@ -578,6 +602,10 @@ const game = (function(gameBoardSize) {
 
         _currentPlayerID = (_currentPlayerID % 2) + 1;
         _playerTimeElapsed = 0;
+
+        if (_winner || isGameOver()) {
+            _gamesPlayed += 1;
+        }
 
         displayController.update();
     }
