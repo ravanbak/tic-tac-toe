@@ -65,8 +65,8 @@ const game = (function(gameBoardSize) {
     const MIN_WIN_SQUARES = (gameBoardSize === 3) ? 3 : 4; // at least this many marks in a row wins the game
 
     let _currentPlayerID;
-    const _player1 = Player(1, 'Computer', markTypes.x);
-    const _player2 = Player(2, 'Zhamak', markTypes.o);
+    const _player1 = Player(1, 'Player 1', markTypes.x);
+    const _player2 = Player(2, 'Player 2', markTypes.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     const getOpponentPlayer = () => (_currentPlayerID == 1) ? _player2 : _player1;
@@ -481,8 +481,8 @@ const game = (function(gameBoardSize) {
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
-        _player1.isAI = true;
-        //_player2.isAI = true;
+        //_player1.isAI = true;
+        _player2.isAI = true;
 
         window.requestAnimationFrame(_gameLoop);
 
