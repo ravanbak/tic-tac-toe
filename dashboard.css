@@ -34,12 +34,13 @@
 }
 
 .player--current {
+    color: var(--color-player-current-fg);
     background: var(--color-player-current-bg);
 }
 
 .player__button {
     font-weight: bold;
-    font-size: min(7vw, 40pt);
+    font-size: min(6vw, 30pt);
     width: 80%;
     padding: 2px;
     margin: 4px;
@@ -54,13 +55,13 @@
 #player1 .player__score span,
 #player1 .player__button {
     background: var(--color-player1-bg);
-    color: var(--color-text1);
+    color: var(--color-player1-fg);
 }
 
 #player2 .player__score span,
 #player2 .player__button {
     background: var(--color-player2-bg);
-    color: var(--color-text1);
+    color: var(--color-player2-fg);
 }
 
 #player1 .player__button:hover,
