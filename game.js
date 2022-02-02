@@ -326,6 +326,10 @@ const game = (function(gameBoardSize) {
         }
     
         function _playerTakeTurn(e) {
+            if (game.getCurrentPlayer().isAI) {
+                return;
+            }
+            
             const row = e.target.dataset['row'];
             const col = e.target.dataset['col'];
     
