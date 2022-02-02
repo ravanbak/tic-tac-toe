@@ -1,6 +1,6 @@
 'use strict';
 
-const GAME_BOARD_SIZE = 3;
+const GAME_BOARD_SIZE = 5;
 
 const markTypes = {
     x: Symbol('x'),
@@ -61,7 +61,7 @@ const game = (function(gameBoardSize) {
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
     const AI_TURN_LENGTH = 1000; // milliseconds
-    const MAX_RECURSION_DEPTH = (gameBoardSize === 3) ? 9 : 7; // 15 - GAME_BOARD_SIZE * 2;
+    const MAX_RECURSION_DEPTH = (gameBoardSize === 3) ? 9 : 6; // 15 - GAME_BOARD_SIZE * 2;
     const MIN_WIN_SQUARES = (gameBoardSize === 3) ? 3 : 4; // at least this many marks in a row wins the game
 
     let _currentPlayerID;
@@ -329,7 +329,7 @@ const game = (function(gameBoardSize) {
             if (game.getCurrentPlayer().isAI) {
                 return;
             }
-            
+
             const row = e.target.dataset['row'];
             const col = e.target.dataset['col'];
     
