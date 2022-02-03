@@ -117,10 +117,10 @@
 }
 
 .player .player__mark {
-    font-size: 5em;
+    font-size: 4em;
     font-weight: bold;
     padding: 0;
-    margin: 0 auto;
+    margin: auto auto;
 }
 
 .player .player__score {
@@ -134,7 +134,7 @@
 
 .player__score span {
     font-weight: bold;
-    font-size: 3em;
+    font-size: 2em;
     padding: 0 20px;
     margin-left: 5px;
     text-align: center;

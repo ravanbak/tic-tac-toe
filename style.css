@@ -135,7 +135,7 @@ body {
 
 .gameboard__square--winner {
     background: var(--color-winning-square-bg);
-    color:var(--color-winning-square-fg);
+    color: var(--color-winning-square-fg);
 }
 
 .footer {
