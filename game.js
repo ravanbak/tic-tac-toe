@@ -60,7 +60,6 @@ const game = (function(gameBoardSize) {
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
     const AI_TURN_LENGTH = 1000; // milliseconds
-    let maxRecursionDepth = 12 - GAME_BOARD_SIZE; // (gameBoardSize === 3) ? 9 : 8; // 12 - GAME_BOARD_SIZE;
     const MIN_WIN_SQUARES = (gameBoardSize === 3) ? 3 : 4; // at least this many marks in a row wins the game
 
     let _currentPlayerID;
@@ -561,14 +560,12 @@ const game = (function(gameBoardSize) {
             let squares = gameBoard.squares;
             let locations = gameBoard.getPlayableLocations();
             const emptySquares = locations.length;
-            if (emptySquares <= 9) {
-                maxRecursionDepth = 9;
-            }
+            let maxRecursionDepth = 7;
+            if (emptySquares <= 20) {
+                maxRecursionDepth = 8;
+            } 
             else if (emptySquares <= 13) {
                 maxRecursionDepth = emptySquares;
-            }
-            else {
-                maxRecursionDepth = 7;
             }
 
             let bestScore = -Infinity;
