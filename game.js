@@ -318,10 +318,12 @@ const game = (function(gameBoardSize) {
         function _setupEventListeners() {
             document.querySelector('.game-controls__new-game').addEventListener('click', _newGame);
             document.querySelector('.game-controls__reset-scores').addEventListener('click', _resetScores);
-            document.querySelector('#player1-name').addEventListener('click', _showPlayerNameForm);
-            document.querySelector('#player2-name').addEventListener('click', _showPlayerNameForm);
-            document.querySelector('#player1 .player__type select').addEventListener('change', _setPlayerType);
-            document.querySelector('#player2 .player__type select').addEventListener('change', _setPlayerType);
+            
+            document.querySelector('#player1-name').addEventListener('click', () => _showPlayerNameForm(1));
+            document.querySelector('#player2-name').addEventListener('click', () => _showPlayerNameForm(2));
+            
+            document.querySelector('#player1 .player__type select').addEventListener('change', function(e) { _setPlayerType(e, 1); });
+            document.querySelector('#player2 .player__type select').addEventListener('change', function(e) { _setPlayerType(e, 2); });
     
             document.querySelector('.board-size select').addEventListener('change', _setGameboardSize);
 
@@ -331,15 +333,13 @@ const game = (function(gameBoardSize) {
             document.querySelector('.overlay').addEventListener('transitionend', _setPlayerNamePopupVisibility);
         }
         
-        function _showPlayerNameForm(e) {
+        function _showPlayerNameForm(playerID) {
             const overlay = document.querySelector('.overlay');
             overlay.style.visibility = 'visible';
             overlay.style.opacity = '1';
             overlay.dataset.visibility = 1;
-                    
-            const playerID = parseInt(e.currentTarget.dataset.playerid);
     
-            document.querySelector('.name-popup__input label').textContent = `Player ${playerID}, what's your name?`;
+            document.querySelector('.name-popup__input label').textContent = `Player ${playerID}'s name:`;
     
             const input = document.querySelector('.name-popup__input input');
             input.value = getPlayerById(playerID).name;
@@ -371,8 +371,8 @@ const game = (function(gameBoardSize) {
             newGame();
         }
 
-        function _setPlayerType(e) {
-            const playerID = parseInt(e.currentTarget.dataset.playerid);
+        function _setPlayerType(e, playerID) {
+            //const playerID = parseInt(e.currentTarget.dataset.playerid);
             const player = getPlayerById(playerID);
             player.aiLevel = parseInt(e.target.value);
         }
@@ -571,6 +571,9 @@ const game = (function(gameBoardSize) {
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
+        _aiPlayerIsThinking = false;
+        document.body.style.cursor = "default";
+
         window.requestAnimationFrame(_gameLoop);
 
         displayController.update();
@@ -581,6 +584,7 @@ const game = (function(gameBoardSize) {
         _player2.reset();
         _gamesPlayed = 0;
         _firstPlayerID = 1;
+        document.body.style.cursor = "default";
     }
 
     function playerSetName(id, name) {
@@ -620,7 +624,7 @@ const game = (function(gameBoardSize) {
 
     function _aiPlayerTakeTurn(aiLevel) {
         _aiPlayerIsThinking = true;
-
+        
         let bestMove = {};
 
         if (gameBoard.isEmpty()) {
@@ -701,6 +705,7 @@ const game = (function(gameBoardSize) {
 
     function _turnFinished() {
         _aiPlayerIsThinking = false;
+        document.body.style.cursor = "default";
 
         _winner = gameBoard.getWinnerN(numSquaresInARowToWin());
         if (_winner) {
@@ -712,6 +717,9 @@ const game = (function(gameBoardSize) {
 
         if (_winner || isGameOver()) {
             _gamesPlayed += 1;
+        }
+        else if (getCurrentPlayer().aiLevel > 0) {
+            document.body.style.cursor = "progress";
         }
 
         displayController.update();

@@ -4,6 +4,7 @@
     --color-palette-3: #D9534F;
     --color-palette-4: #FFAD60;
     --color-palette-5: #381D2A; /* #104547;*/
+    --color-palette-hilight1: hsl(152, 72%, 45%);
     --color-palette-1c: var(--color-palette-5); /* contrast color */
     --color-palette-2c: var(--color-palette-5);
     --color-palette-3c: var(--color-palette-2);
