@@ -1,6 +1,6 @@
 'use strict';
 
-const GAME_BOARD_SIZE = 5;
+const GAME_BOARD_SIZE_DEFAULT = 5;
 
 const markTypes = {
     x: 'x',
@@ -18,7 +18,8 @@ const Player = (id, name, markType) => {
     let _score = 0;
     let _name = name;
     let _markType = markType;
-    let _isAI = false;
+    let _aiLevel = 0; // 0 = human, > 0 = level of difficulty
+    let _maxRecursionDepth;
 
     const reset = () => _score = 0;
     const win = () => _score++;
@@ -42,11 +43,17 @@ const Player = (id, name, markType) => {
         get markType() {
             return _markType;
         },
-        set isAI(value) {
-            _isAI = value;
+        set aiLevel(value) {
+            _aiLevel = value;
         },
-        get isAI() {
-            return _isAI;
+        get aiLevel() {
+            return _aiLevel;
+        },
+        set maxRecursionDepth(value) {
+            _maxRecursionDepth = value;
+        },
+        get maxRecursionDepth() {
+            return _maxRecursionDepth;
         },
         getScore,
         win,
@@ -59,8 +66,8 @@ const game = (function(gameBoardSize) {
     let _gamesPlayed = 0;
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
-    const AI_TURN_LENGTH = 1000; // milliseconds
-    const MIN_WIN_SQUARES = (gameBoardSize === 3) ? 3 : 4; // at least this many marks in a row wins the game
+    const AI_TURN_LENGTH = 800; // milliseconds
+    const numSquaresInARowToWin = () => (gameBoard.size === 3) ? 3 : 4;
 
     let _currentPlayerID;
     let _aiPlayerIsThinking = false;
@@ -275,6 +282,10 @@ const game = (function(gameBoardSize) {
             get size() {
                 return size;
             },
+            set size(value) {
+                size = value;
+                reset();
+            },
             squareIsBlank,
             squareSetMark,
             squareGetMark,
@@ -294,17 +305,26 @@ const game = (function(gameBoardSize) {
     
         const _divGameboard = document.querySelector('.gameboard');
     
-        const _setupButtons = (function() {
+        const _init = function() {
+            _createGameBoard();
+            _setupEventListeners();
+        }();
+
+        function _setupEventListeners() {
             document.querySelector('.game-controls__new-game').addEventListener('click', _newGame);
             document.querySelector('.game-controls__reset-scores').addEventListener('click', _resetScores);
             document.querySelector('#player1-name').addEventListener('click', _showPlayerNameForm);
             document.querySelector('#player2-name').addEventListener('click', _showPlayerNameForm);
+            document.querySelector('#player1 .player__type select').addEventListener('change', _setPlayerType);
+            document.querySelector('#player2 .player__type select').addEventListener('change', _setPlayerType);
     
+            document.querySelector('.board-size select').addEventListener('change', _setGameboardSize);
+
             document.querySelector('.overlay .name-popup').addEventListener('submit', _submitPlayerName);
             document.querySelector('.overlay .name-popup .overlay__close').addEventListener('click', _hidePlayerNamePopup);
     
             document.querySelector('.overlay').addEventListener('transitionend', _setPlayerNamePopupVisibility);
-        })();
+        }
         
         function _showPlayerNameForm(e) {
             const overlay = document.querySelector('.overlay');
@@ -335,6 +355,23 @@ const game = (function(gameBoardSize) {
             _hidePlayerNamePopup();
         }
     
+        function _setGameboardSize(e) {
+            _deleteGameBoard();
+
+            const boardSize = parseInt(e.target.value);
+            gameBoard.size = boardSize;
+
+            _createGameBoard();            
+            
+            newGame();
+        }
+
+        function _setPlayerType(e) {
+            const playerID = parseInt(e.currentTarget.dataset.playerid);
+            const player = getPlayerById(playerID);
+            player.aiLevel = parseInt(e.target.value);
+        }
+
         function _hidePlayerNamePopup() {
             const overlay = document.querySelector('.overlay');
             overlay.style.opacity = '0';
@@ -351,7 +388,7 @@ const game = (function(gameBoardSize) {
         }
     
         function _playerTakeTurn(e) {
-            if (getCurrentPlayer().isAI) {
+            if (getCurrentPlayer().aiLevel) {
                 return;
             }
 
@@ -361,7 +398,7 @@ const game = (function(gameBoardSize) {
             humanPlayerTakeTurn(row, col);
         }
     
-        const _createGameBoard = (function() {
+        function _createGameBoard() {
             const size = gameBoard.size;
     
             const cssFontPercent = parseInt((90 / size).toString());
@@ -409,8 +446,14 @@ const game = (function(gameBoardSize) {
     
             // prevent highlighting 'x' or 'o' text on gameboard:
             _divGameboard.addEventListener('mousedown', (e) => { e.preventDefault() });
-        })();
+        }
    
+        function _deleteGameBoard() {
+            while (_divGameboard.firstChild) {
+                _divGameboard.removeChild(_divGameboard.firstChild);
+            }
+        }
+
         function _newGame() {
             newGame();
             update();
@@ -422,6 +465,8 @@ const game = (function(gameBoardSize) {
         }
     
         function _updateDashBoard() {
+            document.querySelector('.board-size select').value = gameBoard.size;
+
             // names:
             document.querySelector('#player1-name').value = getPlayerById(1).name;
             document.querySelector('#player2-name').value = getPlayerById(2).name;
@@ -429,7 +474,16 @@ const game = (function(gameBoardSize) {
             // scores:
             document.querySelector('#player1 .player__score span').textContent = getPlayerById(1).getScore();
             document.querySelector('#player2 .player__score span').textContent = getPlayerById(2).getScore();
-    
+            
+            document.querySelector('#player1 .depth span').textContent = getPlayerById(1).maxRecursionDepth;
+            document.querySelector('#player2 .depth span').textContent = getPlayerById(2).maxRecursionDepth;
+
+            const empty = gameBoard.getPlayableLocations().length;
+            document.querySelector('#player1 .empty span').textContent = empty;
+            document.querySelector('#player2 .empty span').textContent = empty;
+
+            document.querySelector('.games-played span').textContent = _gamesPlayed.toString();
+
             document.querySelector('#player1.player').classList.remove('player--current');
             document.querySelector('#player1.player').classList.remove('pulse-color');
     
@@ -510,9 +564,6 @@ const game = (function(gameBoardSize) {
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
-        //_player1.isAI = true;
-        _player2.isAI = true;
-
         window.requestAnimationFrame(_gameLoop);
 
         displayController.update();
@@ -535,13 +586,38 @@ const game = (function(gameBoardSize) {
         }
     }
 
-    function _aiPlayerTakeTurn() {
+    function _getMaxRecursionDepth(aiLevel, emptySquares) {
+        let maxRecursionDepth;
+
+        if (aiLevel === 1) {
+            maxRecursionDepth = 1;
+        }
+        else if (aiLevel === 2) {
+            maxRecursionDepth = Math.min(4, emptySquares - 1);
+        }
+        else {
+            if (emptySquares <= 13) {
+                maxRecursionDepth = 13; //emptySquares;
+            }
+            else if (emptySquares <= 19) {
+                maxRecursionDepth = 20 - emptySquares + 6;
+            }
+            else {
+                maxRecursionDepth = 6;
+            } 
+        }
+        
+        return maxRecursionDepth;
+    }
+
+    function _aiPlayerTakeTurn(aiLevel) {
         _aiPlayerIsThinking = true;
 
         let bestMove = {};
 
         if (gameBoard.isEmpty()) {
-            if (gameBoard.size === 3) {
+            // first move by first player
+            if (getCurrentPlayer().aiLevel > 1 && gameBoard.size === 3) {
                 // speed up the very first move, just choose a random corner square:
                 const i = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
                 const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
@@ -559,16 +635,13 @@ const game = (function(gameBoardSize) {
 
             let squares = gameBoard.squares;
             let locations = gameBoard.getPlayableLocations();
-            const emptySquares = locations.length;
-            let maxRecursionDepth = 7;
-            if (emptySquares <= 20) {
-                maxRecursionDepth = 8;
-            } 
-            else if (emptySquares <= 13) {
-                maxRecursionDepth = emptySquares;
-            }
+            let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, locations.length);
+
+            getCurrentPlayer().maxRecursionDepth = maxRecursionDepth;
+            displayController.update();
 
             let bestScore = -Infinity;
+
             const markType = getCurrentPlayer().markType;
             const numWorkers = locations.length;
             let numWorkersResponded = 0;
@@ -580,7 +653,7 @@ const game = (function(gameBoardSize) {
                 // Deploy a worker to evaluate the current move:
                 let minimaxWorker = new Worker('worker.js');
                 minimaxWorker.postMessage({ maxDepth: maxRecursionDepth,
-                                            minWinSquares: MIN_WIN_SQUARES,
+                                            minWinSquares: numSquaresInARowToWin(),
                                             currentPlayerID: getCurrentPlayer().id,
                                             currentPlayerMark: markType,
                                             squares: squares });
@@ -621,7 +694,7 @@ const game = (function(gameBoardSize) {
     function _turnFinished() {
         _aiPlayerIsThinking = false;
 
-        _winner = gameBoard.getWinnerN(MIN_WIN_SQUARES);
+        _winner = gameBoard.getWinnerN(numSquaresInARowToWin());
         if (_winner) {
             _winner.getPlayer().win();
         }
@@ -638,6 +711,7 @@ const game = (function(gameBoardSize) {
 
     function _gameLoop(timeStamp) {
         if (isGameOver()) {
+            //newGame();
             return;
         }
 
@@ -650,8 +724,9 @@ const game = (function(gameBoardSize) {
             _playerTimeElapsed = 0;
 
             if (!_aiPlayerIsThinking) {
-                if (getCurrentPlayer().isAI) {
-                    _aiPlayerTakeTurn();
+                const ai = getCurrentPlayer().aiLevel;
+                if (ai) {
+                    _aiPlayerTakeTurn(ai);
                 }
             }
         }
@@ -663,6 +738,6 @@ const game = (function(gameBoardSize) {
         newGame,
     }
 
-})(GAME_BOARD_SIZE);
+})(GAME_BOARD_SIZE_DEFAULT);
 
 game.newGame();

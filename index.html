@@ -10,10 +10,20 @@
     <link rel="stylesheet" href="player-name-form.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+    <link rel="icon" href="favicon.png" type="image/svg">
 </head>
 <body>
     <div class="header">
         <h1>Tic Tac Toe</h1>
+        <div class="board-size">
+            <label for="board-size">Board size:</label>
+            <select name="board-size" id="board-size">
+                <option value="3">3 &times 3</option>
+                <option value="4">4 &times 4</option>
+                <option value="5">5 &times 5</option>
+                <option value="6">6 &times 6</option>
+            </select>
+        </div>
         <div class="game-controls">
             <input type="button" class="game-controls__reset-scores" value="Reset Scores">
             <input type="button" class="game-controls__new-game" value="New Game">
@@ -26,16 +36,37 @@
                 <div class="player__score-wrapper">
                     <div class="player__mark">X</div>
                     <div class="player__score">wins<span>0</span></div>
+                    <div class="player__type">
+                        <select name="player-type" data-playerid="1">
+                            <option value="0">Human</option>
+                            <option value="1">A.I. - Easy</option>
+                            <option value="2">A.I. - Medium</option>
+                            <option value="3">A.I. - Hard</option>
+                        </select>
+                    </div>
                 </div>
+                <div class="depth">Depth: <span></span></div>
+                <div class="empty">Empty: <span></span></div>                
             </div>
             <div id="player2" class="player">
                 <input type="button" id="player2-name" class="player__button" data-playerid="2">
                 <div class="player__score-wrapper">
                     <div class="player__mark">O</div>
                     <div class="player__score">wins<span>0</span></div>
+                    <div class="player__type">
+                        <select name="player-type" data-playerid="2">
+                            <option value="0">Human</option>
+                            <option value="1">A.I. - Easy</option>
+                            <option value="2">A.I. - Medium</option>
+                            <option value="3">A.I. - Hard</option>
+                        </select>
+                    </div>
                 </div>
+                <div class="depth">Depth: <span></span></div>                
+                <div class="empty">Empty: <span></span></div>                
             </div>
         </div>
+        <div class="games-played">Games played: <span>0</span></div>
         <div id="name-popup" class="overlay" data-visible="0">
             <form class="name-popup" action="" method="dialog">
                 <div class="name-popup__input">

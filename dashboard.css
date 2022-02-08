@@ -40,10 +40,10 @@
 
 .player__button {
     font-weight: bold;
-    font-size: min(6vw, 30pt);
+    font-size: min(5vw, 26pt);
     width: 80%;
-    padding: 2px;
-    margin: 4px;
+    padding: 1px;
+    margin: 1px;
     text-decoration: none;
     border: 1px solid var(--color-border1);
     border-radius: 10px;
