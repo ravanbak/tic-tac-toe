@@ -1,5 +1,5 @@
 :root {
-    --color-palette-1: #96CEB4;
+    --color-palette-1: #97ceb4;
     --color-palette-2: #ffeead;
     --color-palette-3: #D9534F;
     --color-palette-4: #FFAD60;
@@ -28,7 +28,7 @@
     --color-winning-square-fg: var(--color-palette-1c);
     --color-border1: var(--color-palette-5);
     --color-gameboard-lines: var(--color-palette-5);
-    --section-shadow: 0 5px 10px rgb(0, 0, 0, 0.3);
+    --section-shadow: 0 5px 15px rgb(0, 0, 0, 0.33);
     --button-shadow: 5px 5px 10px rgb(0, 0, 0, 0.5);
     --square-shadow: inset 5px 5px 9px rgb(0, 0, 0, 0.2);
     --square-text-shadow: 5px 5px 8px rgb(0, 0, 0, 0.2);

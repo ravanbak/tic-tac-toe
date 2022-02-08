@@ -1,6 +1,10 @@
 'use strict';
 
-const GAME_BOARD_SIZE_DEFAULT = 5;
+const settings = {
+    AutoStartNewGame: false,
+    AIPlayerTurnLengthMS: 1200,
+    DefaultGameBoardSize: 3,
+}
 
 const markTypes = {
     x: 'x',
@@ -66,16 +70,17 @@ const game = (function(gameBoardSize) {
     let _gamesPlayed = 0;
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
-    const AI_TURN_LENGTH = 800; // milliseconds
+    const AI_TURN_LENGTH = 1200; // milliseconds
     const numSquaresInARowToWin = () => (gameBoard.size === 3) ? 3 : 4;
 
+    let _firstPlayerID = 1;
     let _currentPlayerID;
     let _aiPlayerIsThinking = false;
     const _player1 = Player(1, 'Player 1', markTypes.x);
     const _player2 = Player(2, 'Player 2', markTypes.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
-    const getOpponentPlayer = () => (_currentPlayerID == 1) ? _player2 : _player1;
+    const getOpponentPlayerID = (id) => (id === 1 ? 2 : 1);
     let _winner = null;
 
     const WinnerInfo = (markType, winningSquares) => {
@@ -560,7 +565,9 @@ const game = (function(gameBoardSize) {
     function newGame() {
         gameBoard.reset();
         _winner = null;
-        _currentPlayerID = 1;
+
+        _currentPlayerID = _firstPlayerID;
+        
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
@@ -573,6 +580,7 @@ const game = (function(gameBoardSize) {
         _player1.reset();
         _player2.reset();
         _gamesPlayed = 0;
+        _firstPlayerID = 1;
     }
 
     function playerSetName(id, name) {
@@ -711,7 +719,12 @@ const game = (function(gameBoardSize) {
 
     function _gameLoop(timeStamp) {
         if (isGameOver()) {
-            //newGame();
+            _firstPlayerID = getOpponentPlayerID(_firstPlayerID); // swap who gets to go first next game
+
+            if (settings.AutoStartNewGame) {
+                newGame();
+            }
+
             return;
         }
 
@@ -738,6 +751,6 @@ const game = (function(gameBoardSize) {
         newGame,
     }
 
-})(GAME_BOARD_SIZE_DEFAULT);
+})(settings.DefaultGameBoardSize);
 
 game.newGame();
