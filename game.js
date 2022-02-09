@@ -24,6 +24,7 @@ const Player = (id, name, markType) => {
     let _markType = markType;
     let _aiLevel = 0; // 0 = human, > 0 = level of difficulty
     let _maxRecursionDepth;
+    let _numWorkers = 0;
 
     const reset = () => _score = 0;
     const win = () => _score++;
@@ -59,6 +60,12 @@ const Player = (id, name, markType) => {
         get maxRecursionDepth() {
             return _maxRecursionDepth;
         },
+        set numWorkers(value) {
+            _numWorkers = value;
+        },
+        get numWorkers() {
+            return _numWorkers;
+        },        
         getScore,
         win,
     }
@@ -70,7 +77,6 @@ const game = (function(gameBoardSize) {
     let _gamesPlayed = 0;
     let _gameLoopTimeStamp = 0;
     let _playerTimeElapsed = 0;
-    const AI_TURN_LENGTH = 1200; // milliseconds
     const numSquaresInARowToWin = () => (gameBoard.size === 3) ? 3 : 4;
 
     let _firstPlayerID = 1;
@@ -82,6 +88,8 @@ const game = (function(gameBoardSize) {
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     const getOpponentPlayerID = (id) => (id === 1 ? 2 : 1);
     let _winner = null;
+
+    let aiWorkers = [];
 
     const WinnerInfo = (markType, winningSquares) => {
         const getPlayer = () => {
@@ -355,7 +363,7 @@ const game = (function(gameBoardSize) {
     
             playerSetName(playerID, e.srcElement['player-name'].value);
             
-            _updateDashBoard();
+            updateDashBoard();
     
             _hidePlayerNamePopup();
         }
@@ -372,8 +380,16 @@ const game = (function(gameBoardSize) {
         }
 
         function _setPlayerType(e, playerID) {
-            //const playerID = parseInt(e.currentTarget.dataset.playerid);
             const player = getPlayerById(playerID);
+
+            if (player.aiLevel > 0) {
+                // Terminate any existing workers since they were
+                // working at a different AI level, and also, player 
+                // type may be changing to human.
+                _terminateAIWorkers();
+                _aiPlayerIsThinking = false;
+            }
+
             player.aiLevel = parseInt(e.target.value);
         }
 
@@ -469,7 +485,7 @@ const game = (function(gameBoardSize) {
             update();
         }
     
-        function _updateDashBoard() {
+        function updateDashBoard() {
             document.querySelector('.board-size select').value = gameBoard.size;
 
             // names:
@@ -486,6 +502,9 @@ const game = (function(gameBoardSize) {
             const empty = gameBoard.getPlayableLocations().length;
             document.querySelector('#player1 .empty span').textContent = empty;
             document.querySelector('#player2 .empty span').textContent = empty;
+
+            document.querySelector('#player1 .workers span').textContent = _player1.numWorkers;
+            document.querySelector('#player2 .workers span').textContent = _player2.numWorkers;
 
             document.querySelector('.games-played span').textContent = _gamesPlayed.toString();
 
@@ -551,11 +570,12 @@ const game = (function(gameBoardSize) {
     
         function update() {
             _updateGameBoard();
-            _updateDashBoard();
+            updateDashBoard();
         }
     
         return {
             update,
+            updateDashBoard,
         }
     
     })();
@@ -567,12 +587,11 @@ const game = (function(gameBoardSize) {
         _winner = null;
 
         _currentPlayerID = _firstPlayerID;
-        
+       
         _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
 
         _aiPlayerIsThinking = false;
-        document.body.style.cursor = "default";
 
         window.requestAnimationFrame(_gameLoop);
 
@@ -584,7 +603,6 @@ const game = (function(gameBoardSize) {
         _player2.reset();
         _gamesPlayed = 0;
         _firstPlayerID = 1;
-        document.body.style.cursor = "default";
     }
 
     function playerSetName(id, name) {
@@ -619,7 +637,15 @@ const game = (function(gameBoardSize) {
             } 
         }
         
-        return maxRecursionDepth;
+        return 16; // maxRecursionDepth;
+    }
+
+    function _terminateAIWorkers() {
+        for (let i = 0; i < aiWorkers.length; i++) {
+            aiWorkers[i].terminate();
+        }
+
+        aiWorkers = [];
     }
 
     function _aiPlayerTakeTurn(aiLevel) {
@@ -652,10 +678,12 @@ const game = (function(gameBoardSize) {
             getCurrentPlayer().maxRecursionDepth = maxRecursionDepth;
             displayController.update();
 
+            _terminateAIWorkers();
+
             let bestScore = -Infinity;
 
             const markType = getCurrentPlayer().markType;
-            const numWorkers = locations.length;
+            
             let numWorkersResponded = 0;
 
             for (let i = 0; i < locations.length; i++) {
@@ -663,17 +691,23 @@ const game = (function(gameBoardSize) {
                 squares[loc.row][loc.col] = markType;
 
                 // Deploy a worker to evaluate the current move:
-                let minimaxWorker = new Worker('worker.js');
-                minimaxWorker.postMessage({ maxDepth: maxRecursionDepth,
-                                            minWinSquares: numSquaresInARowToWin(),
-                                            currentPlayerID: getCurrentPlayer().id,
-                                            currentPlayerMark: markType,
-                                            squares: squares });
+                let worker = new Worker('worker.js');
+                getCurrentPlayer().numWorkers = aiWorkers.push(worker);
+                displayController.updateDashBoard(); // for debugging, show number of workers
+    
+                worker.postMessage({ maxDepth: maxRecursionDepth,
+                                     minWinSquares: numSquaresInARowToWin(),
+                                     currentPlayerID: getCurrentPlayer().id,
+                                     currentPlayerMark: markType,
+                                     squares: squares });
                 
                 squares[loc.row][loc.col] = '';
 
-                minimaxWorker.onmessage = function(e) {
-                    minimaxWorker.terminate(); // we're finished with this worker
+                worker.onmessage = function(e) {
+                    worker.terminate(); // we're finished with this worker
+
+                    getCurrentPlayer().numWorkers -= 1;
+                    displayController.updateDashBoard();
 
                     let score = e.data.score;
                     if (score > bestScore) {
@@ -682,7 +716,7 @@ const game = (function(gameBoardSize) {
                     }
                     
                     numWorkersResponded += 1;
-                    if (numWorkersResponded === numWorkers) {
+                    if (numWorkersResponded === aiWorkers.length) {
                         // All workers are finished, play the best move:
                         gameBoard.squareSetMark(bestMove.row, bestMove.col, getCurrentPlayer().markType);
                         _turnFinished();
@@ -705,7 +739,6 @@ const game = (function(gameBoardSize) {
 
     function _turnFinished() {
         _aiPlayerIsThinking = false;
-        document.body.style.cursor = "default";
 
         _winner = gameBoard.getWinnerN(numSquaresInARowToWin());
         if (_winner) {
@@ -718,14 +751,13 @@ const game = (function(gameBoardSize) {
         if (_winner || isGameOver()) {
             _gamesPlayed += 1;
         }
-        else if (getCurrentPlayer().aiLevel > 0) {
-            document.body.style.cursor = "progress";
-        }
 
         displayController.update();
     }
 
     function _gameLoop(timeStamp) {
+        document.body.style.cursor = _aiPlayerIsThinking ? 'progress' : 'default';
+
         if (isGameOver()) {
             _firstPlayerID = getOpponentPlayerID(_firstPlayerID); // swap who gets to go first next game
 
@@ -741,7 +773,7 @@ const game = (function(gameBoardSize) {
 
         _playerTimeElapsed += elapsed;
 
-        if (_playerTimeElapsed >= AI_TURN_LENGTH) {
+        if (_playerTimeElapsed >= settings.AIPlayerTurnLengthMS) {
             _playerTimeElapsed = 0;
 
             if (!_aiPlayerIsThinking) {
