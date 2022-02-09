@@ -23,8 +23,8 @@ const Player = (id, name, markType) => {
     let _name = name;
     let _markType = markType;
     let _aiLevel = 0; // 0 = human, > 0 = level of difficulty
-    let _maxRecursionDepth;
-    let _numWorkers = 0;
+    let _maxRecursionDepth; // current recursion depth, for debug output
+    let _numWorkers = 0; // current number of workers running, for debug output
 
     const reset = () => _score = 0;
     const win = () => _score++;
@@ -131,6 +131,59 @@ const game = (function(gameBoardSize) {
         }
         reset();
         
+        function isSymmetric() {
+            // If marks on the gameboard are symmetric about an axis,
+            // return the axis (directionType), otherwise return null.
+
+            let symmetricDiagUp = true;
+            let symmetricDiagDown = true;
+
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (i !== j) {
+                        if (_squares[i][j] !== _squares[j][i]) {
+                            symmetricDiagDown = false;
+                        }
+                    }
+                    if (i !== size - 1 - j) {
+                        if (_squares[i][j] !== _squares[size - 1 - j][size - 1 - i]) {
+                            symmetricDiagUp = false;
+                        }
+                    }
+                }
+            }
+
+            if (symmetricDiagDown) {
+                return directionType.diagDown;
+            }
+            else if (symmetricDiagUp) {
+                return directionType.diagUp;
+            }
+
+            let symmetricRow = true;
+            let symmetricCol = true;
+            const halfSize = Math.floor(size / 2);
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < halfSize; j++) {
+                    if (_squares[i][j] !== _squares[i][size - 1 - j]) {
+                        symmetricCol = false;
+                    }
+                    else if (_squares[j][i] !== _squares[size - 1 - j][i]) {
+                        symmetricRow = false;
+                    }
+                }
+            }
+
+            if (symmetricRow) {
+                return directionType.row;
+            }
+            else if (symmetricCol) {
+                return directionType.col;
+            }
+
+            return null;
+        }
+
         function getRandomEmptySquare() {
             if (isFull()) {
                 return null;
@@ -310,6 +363,7 @@ const game = (function(gameBoardSize) {
             isEmpty,
             getPlayableLocations,
             getWinnerN,
+            isSymmetric,
         }
     })(gameBoardSize);    
 
@@ -752,6 +806,9 @@ const game = (function(gameBoardSize) {
             _gamesPlayed += 1;
         }
 
+        //const sym = gameBoard.isSymmetric();
+        //if (sym) console.log(sym);
+
         displayController.update();
     }
 
@@ -789,6 +846,7 @@ const game = (function(gameBoardSize) {
 
     return {
         newGame,
+        gameBoard,
     }
 
 })(settings.DefaultGameBoardSize);
