@@ -131,57 +131,58 @@ const game = (function(gameBoardSize) {
         }
         reset();
         
-        function isSymmetric() {
-            // If marks on the gameboard are symmetric about an axis,
-            // return the axis (directionType), otherwise return null.
-
-            let symmetricDiagUp = true;
-            let symmetricDiagDown = true;
-
-            for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size; j++) {
-                    if (i !== j) {
-                        if (_squares[i][j] !== _squares[j][i]) {
-                            symmetricDiagDown = false;
-                        }
-                    }
-                    if (i !== size - 1 - j) {
-                        if (_squares[i][j] !== _squares[size - 1 - j][size - 1 - i]) {
-                            symmetricDiagUp = false;
-                        }
-                    }
-                }
-            }
-
-            if (symmetricDiagDown) {
-                return directionType.diagDown;
-            }
-            else if (symmetricDiagUp) {
-                return directionType.diagUp;
-            }
+        function getSymmetry() {
+            // Returns flags for each axis (vertical, horizontal, diag up, diag down)
+            // indicating if the marks on the gameboard are symmetric about the axis.
 
             let symmetricRow = true;
             let symmetricCol = true;
+
             const halfSize = Math.floor(size / 2);
             for (let i = 0; i < size; i++) {
                 for (let j = 0; j < halfSize; j++) {
                     if (_squares[i][j] !== _squares[i][size - 1 - j]) {
-                        symmetricCol = false;
-                    }
-                    else if (_squares[j][i] !== _squares[size - 1 - j][i]) {
                         symmetricRow = false;
+                    }
+                    if (_squares[j][i] !== _squares[size - 1 - j][i]) {
+                        symmetricCol = false;
                     }
                 }
             }
 
-            if (symmetricRow) {
-                return directionType.row;
-            }
-            else if (symmetricCol) {
-                return directionType.col;
+            let symmetricDiagUp = false;
+            let symmetricDiagDown = false;
+
+            if (!symmetricRow && !symmetricCol) {
+                symmetricDiagUp = true;
+                symmetricDiagDown = true;
+
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        if (i !== j) {
+                            if (_squares[i][j] !== _squares[j][i]) {
+                                symmetricDiagDown = false;
+                            }
+                        }
+                        if (i !== size - 1 - j) {
+                            if (_squares[i][j] !== _squares[size - 1 - j][size - 1 - i]) {
+                                symmetricDiagUp = false;
+                            }
+                        }
+                    }
+                }
             }
 
-            return null;
+            return {
+                row: symmetricRow,
+                col: symmetricCol,
+                diagUp: symmetricDiagUp,
+                diagDown: symmetricDiagDown
+            }
+        }
+
+        function getEmptySquareCount() {
+            return _squares.reduce((prev, cur) => prev + cur.filter(el => el === '').length, 0);
         }
 
         function getRandomEmptySquare() {
@@ -228,15 +229,51 @@ const game = (function(gameBoardSize) {
         function getPlayableLocations() {
             // Return an array of available locations, prioritizing
             // locations that are adjacent to non-empty squares.
+            //
+            // If marks on the gameboard are symmetric about a center
+            // axis, only return the squares on one side of the axis
+            // plus the squares on the axis (if size is odd, or diagonal axis).
+
+            let iEnd = size;
+            let jEnd = size;
+            
+            const halfSize = Math.ceil(size / 2);
+            const symmetry = getSymmetry();
+            if (symmetry.row) {
+                jEnd = halfSize;
+            }
+            if (symmetry.col) {
+                iEnd = halfSize;
+            }
+
             let squaresPriority1 = [];
             let squaresPriority2 = [];
 
-            for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size; j++) {
+            for (let i = 0; i < iEnd; i++) {
+                for (let j = 0; j < jEnd; j++) {
                     if (_squares[i][j] !== '') {
                         continue;
                     }
+                    
+                    if (symmetry.diagUp) {
+                        if (i + j > size - 1) {
+                            // this square is equivalent to an
+                            // earlier square since the marks
+                            // are diagonally symmetric
+                            continue;
+                        }
+                    }
+                    if (symmetry.diagDown) {
+                        if (i - j > 0) {
+                            // this square is equivalent to an
+                            // earlier square since the marks
+                            // are diagonally symmetric
+                            continue;
+                        }
+                    }
+
                     let loc = { row: i, col: j };
+
                     if (adjacentSquareHasMark(loc)) {
                         squaresPriority1.push(loc);
                     }
@@ -358,12 +395,13 @@ const game = (function(gameBoardSize) {
             get squares() {
                 return _squares;
             },
+            getEmptySquareCount,
             getRandomEmptySquare,
             isFull,
             isEmpty,
+            getSymmetry,
             getPlayableLocations,
             getWinnerN,
-            isSymmetric,
         }
     })(gameBoardSize);    
 
@@ -553,7 +591,7 @@ const game = (function(gameBoardSize) {
             document.querySelector('#player1 .depth span').textContent = getPlayerById(1).maxRecursionDepth;
             document.querySelector('#player2 .depth span').textContent = getPlayerById(2).maxRecursionDepth;
 
-            const empty = gameBoard.getPlayableLocations().length;
+            const empty = gameBoard.getEmptySquareCount();
             document.querySelector('#player1 .empty span').textContent = empty;
             document.querySelector('#player2 .empty span').textContent = empty;
 
@@ -646,10 +684,11 @@ const game = (function(gameBoardSize) {
         _gameLoopTimeStamp = 0;
 
         _aiPlayerIsThinking = false;
-
-        window.requestAnimationFrame(_gameLoop);
+        _terminateAIWorkers();
 
         displayController.update();
+
+        window.requestAnimationFrame(_gameLoop);        
     }
 
     function resetScores() {
@@ -683,15 +722,18 @@ const game = (function(gameBoardSize) {
             if (emptySquares <= 13) {
                 maxRecursionDepth = 13; //emptySquares;
             }
-            else if (emptySquares <= 19) {
-                maxRecursionDepth = 20 - emptySquares + 6;
+            else if (emptySquares <= 16) {
+                maxRecursionDepth = 10;
             }
-            else {
-                maxRecursionDepth = 6;
+            else if (emptySquares <= 20) {
+                maxRecursionDepth = 9;
             } 
+            else {
+                maxRecursionDepth = 8;
+            }
         }
         
-        return 16; // maxRecursionDepth;
+        return maxRecursionDepth;
     }
 
     function _terminateAIWorkers() {
@@ -727,7 +769,7 @@ const game = (function(gameBoardSize) {
 
             let squares = gameBoard.squares;
             let locations = gameBoard.getPlayableLocations();
-            let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, locations.length);
+            let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
 
             getCurrentPlayer().maxRecursionDepth = maxRecursionDepth;
             displayController.update();

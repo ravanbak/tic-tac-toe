@@ -49,18 +49,104 @@ function adjacentSquareHasMark(loc) {
     return false;
 }
 
+function _getSymmetry() {
+    // Returns flags for each axis (vertical, horizontal, diag up, diag down)
+    // indicating if the marks on the gameboard are symmetric about the axis.
+
+    let symmetricRow = true;
+    let symmetricCol = true;
+
+    const halfSize = Math.floor(gameBoardSize / 2);
+    for (let i = 0; i < gameBoardSize; i++) {
+        for (let j = 0; j < halfSize; j++) {
+            if (squares[i][j] !== squares[i][gameBoardSize - 1 - j]) {
+                symmetricRow = false;
+            }
+            if (squares[j][i] !== squares[gameBoardSize - 1 - j][i]) {
+                symmetricCol = false;
+            }
+        }
+    }
+
+    let symmetricDiagUp = false;
+    let symmetricDiagDown = false;
+
+    if (!symmetricRow && !symmetricCol) {
+        symmetricDiagUp = true;
+        symmetricDiagDown = true;
+
+        for (let i = 0; i < gameBoardSize; i++) {
+            for (let j = 0; j < gameBoardSize; j++) {
+                if (i !== j) {
+                    if (squares[i][j] !== squares[j][i]) {
+                        symmetricDiagDown = false;
+                    }
+                }
+                if (i !== gameBoardSize - 1 - j) {
+                    if (squares[i][j] !== squares[gameBoardSize - 1 - j][gameBoardSize - 1 - i]) {
+                        symmetricDiagUp = false;
+                    }
+                }
+            }
+        }
+    }
+
+    return {
+        row: symmetricRow,
+        col: symmetricCol,
+        diagUp: symmetricDiagUp,
+        diagDown: symmetricDiagDown
+    }
+}
+
 function getPlayableLocations() {
     // Return an array of available locations, prioritizing
     // locations that are adjacent to non-empty squares.
+    //
+    // If marks on the gameboard are symmetric about a center
+    // axis, only return the squares on one side of the axis
+    // plus the squares on the axis (if gameBoardSize is odd, or diagonal axis).
+
+    let iEnd = gameBoardSize;
+    let jEnd = gameBoardSize;
+    
+    const halfSize = Math.ceil(gameBoardSize / 2);
+    const symmetry = _getSymmetry();
+    if (symmetry.row) {
+        jEnd = halfSize;
+    }
+    if (symmetry.col) {
+        iEnd = halfSize;
+    }
+
     let squaresPriority1 = [];
     let squaresPriority2 = [];
 
-    for (let i = 0; i < gameBoardSize; i++) {
-        for (let j = 0; j < gameBoardSize; j++) {
+    for (let i = 0; i < iEnd; i++) {
+        for (let j = 0; j < jEnd; j++) {
             if (squares[i][j] !== '') {
                 continue;
             }
+            
+            if (symmetry.diagUp) {
+                if (i + j > gameBoardSize - 1) {
+                    // this square is equivalent to an
+                    // earlier square since the marks
+                    // are diagonally symmetric
+                    continue;
+                }
+            }
+            if (symmetry.diagDown) {
+                if (i - j > 0) {
+                    // this square is equivalent to an
+                    // earlier square since the marks
+                    // are diagonally symmetric
+                    continue;
+                }
+            }
+
             let loc = { row: i, col: j };
+
             if (adjacentSquareHasMark(loc)) {
                 squaresPriority1.push(loc);
             }
