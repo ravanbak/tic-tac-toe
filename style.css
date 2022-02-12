@@ -60,6 +60,12 @@ body {
     color: var(--color-text1);
 }
 
+select {
+    background: var(--color-bg2);
+    padding: 0 5px;
+    font-size: 1em;
+}
+
 .game-controls {
     display: flex;
 }

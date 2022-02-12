@@ -19,10 +19,11 @@ const directionType = {
 }
 
 const soundEffect = {
-    player1go: 'player1-go',
-    player2go: 'player2-go',
-    win: 'win',
-    lose: 'lose',
+    player1go: document.querySelector('.player1-go'),
+    player2go: document.querySelector('.player2-go'),
+    win: document.querySelector('.win'), // human wins
+    lose: document.querySelector('.lose'), // human loses to AI
+    tie: document.querySelector('.tie'), // tie game, or AI vs AI game over
 }
 
 const Player = (id, name, markType) => {
@@ -94,7 +95,8 @@ const game = (function(gameBoardSize) {
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     const getOpponentPlayerID = (id) => (id === 1 ? 2 : 1);
-    let _winner = null;
+    const getOpponentPlayer = () => getPlayerById(getOpponentPlayerID(_currentPlayerID));
+    let _winnerInfo = null;
 
     let aiWorkers = [];
 
@@ -599,9 +601,6 @@ const game = (function(gameBoardSize) {
             document.querySelector('#player2 .depth span').textContent = getPlayerById(2).maxRecursionDepth;
 
             // debug info
-            const empty = gameBoard.getEmptySquareCount();
-            document.querySelector('#player1 .empty span').textContent = empty;
-            document.querySelector('#player2 .empty span').textContent = empty;
             document.querySelector('#player1 .workers span').textContent = _player1.numWorkers;
             document.querySelector('#player2 .workers span').textContent = _player2.numWorkers;
 
@@ -627,8 +626,8 @@ const game = (function(gameBoardSize) {
         }
     
         function _getGameStateMessage() {
-            if (_winner) {
-                return getCurrentPlayer().name + ' WINS!'
+            if (_winnerInfo) {
+                return _winnerInfo.getPlayer().name + ' WINS!'
             }
             else if (isGameOver()) {
                 return 'Tie Game!';
@@ -670,8 +669,8 @@ const game = (function(gameBoardSize) {
                 }
             );
 
-            if (_winner) {
-                const winningLocations = _winner.winningSquares;
+            if (_winnerInfo) {
+                const winningLocations = _winnerInfo.winningSquares;
                 for (let i = 0; i < winningLocations.length; i++) {
                     let row = winningLocations[i].row;
                     let col = winningLocations[i].col;
@@ -695,11 +694,11 @@ const game = (function(gameBoardSize) {
     
     })();
 
-    const isGameOver = () => !!_winner || gameBoard.isFull();
+    const isGameOver = () => !!_winnerInfo || gameBoard.isFull();
 
     function newGame() {
         gameBoard.reset();
-        _winner = null;
+        _winnerInfo = null;
 
         _currentPlayerID = _firstPlayerID;
        
@@ -867,45 +866,49 @@ const game = (function(gameBoardSize) {
     function _turnFinished() {
         _aiPlayerIsThinking = false;
 
-        _winner = gameBoard.getWinnerN(numSquaresInARowToWin());
-        if (_winner) {
-            _winner.getPlayer().win();
-        }
+        _winnerInfo = gameBoard.getWinnerN(numSquaresInARowToWin());
 
-        if (_winner) {
-            if (_winner.getPlayer().aiLevel === 0) {
-                _playPlayerSound(soundEffect.win);
+        if (_winnerInfo) {
+            const winner = _winnerInfo.getPlayer();
+            const loser = getOpponentPlayer();
+
+            winner.win();
+        
+            if (winner.aiLevel === 0) {
+                _playSoundEffect(soundEffect.win);
             } 
+            else if (loser.aiLevel === 0) {
+                _playSoundEffect(soundEffect.lose);
+            }
             else {
-                _playPlayerSound(soundEffect.lose);
+                _playSoundEffect(soundEffect.tie);
             }
         }
         else if (isGameOver()) {
-            _playPlayerSound(soundEffect.lose);
+            _playSoundEffect(soundEffect.tie);
         }
         else if (_currentPlayerID === 1) {
-            _playPlayerSound(soundEffect.player1go);
+            _playSoundEffect(soundEffect.player1go);
         }
         else if (_currentPlayerID === 2) {
-            _playPlayerSound(soundEffect.player2go);
+            _playSoundEffect(soundEffect.player2go);
         }
 
         _currentPlayerID = (_currentPlayerID % 2) + 1;
         _playerTimeElapsed = 0;
 
-        if (_winner || isGameOver()) {
+        if (_winnerInfo || isGameOver()) {
             _gamesPlayed += 1;
         }
 
         displayController.update();
     }
 
-    function _playPlayerSound(sound) {
-        const audio = document.querySelector(`.${sound}`);
-        if (!audio) return;
+    function _playSoundEffect(sound) {
+        if (!sound) return;
 
-        audio.currentTime = 0;
-        audio.play();
+        sound.currentTime = 0;
+        sound.play();
     }
 
     function _gameLoop(timeStamp) {

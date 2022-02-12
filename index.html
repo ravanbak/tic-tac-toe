@@ -32,21 +32,22 @@
     <div class="dashboard">
         <div class="players">
             <div id="player1" class="player">
-                <input type="button" id="player1-name" class="player__button">
+                <input type="button" id="player1-name" class="player__button">    
                 <div class="player__score-wrapper">
-                    <div class="player__mark">X</div>
+                    <div class="player__mark">
+                        X                    
+                    </div>                        
                     <div class="player__score">wins<span>0</span></div>
-                    <div class="player__type">
-                        <select name="player-type">
-                            <option value="0">Human</option>
-                            <option value="1">A.I. - Easy</option>
-                            <option value="2">A.I. - Medium</option>
-                            <option value="3">A.I. - Hard</option>
-                        </select>
-                    </div>
                 </div>
-                <div class="depth">Depth: <span></span></div>
-                <div class="empty">Empty: <span></span></div>
+                <div class="player__type">
+                    <select name="player-type">
+                        <option value="0">Human</option>
+                        <option value="1">A.I. - Easy</option>
+                        <option value="2">A.I. - Medium</option>
+                        <option value="3">A.I. - Hard</option>
+                    </select>
+                </div>
+            <div class="depth">Depth: <span></span></div>
                 <div class="workers">Workers: <span></span></div>
             </div>
             <div id="player2" class="player">
@@ -54,17 +55,16 @@
                 <div class="player__score-wrapper">
                     <div class="player__mark">O</div>
                     <div class="player__score">wins<span>0</span></div>
-                    <div class="player__type">
-                        <select name="player-type">
-                            <option value="0">Human</option>
-                            <option value="1">A.I. - Easy</option>
-                            <option value="2">A.I. - Medium</option>
-                            <option value="3">A.I. - Hard</option>
-                        </select>
-                    </div>
                 </div>
-                <div class="depth">Depth: <span></span></div>
-                <div class="empty">Empty: <span></span></div>
+                <div class="player__type">
+                    <select name="player-type">
+                        <option value="0">Human</option>
+                        <option value="1">A.I. - Easy</option>
+                        <option value="2">A.I. - Medium</option>
+                        <option value="3">A.I. - Hard</option>
+                    </select>
+                </div>
+            <div class="depth">Depth: <span></span></div>
                 <div class="workers">Workers: <span></span></div>
             </div>
         </div>
@@ -90,6 +90,7 @@
         <audio class="player2-go" src="assets/player2.mp3"></audio>
         <audio class="win" src="assets/win.mp3"></audio>
         <audio class="lose" src="assets/lose.mp3"></audio>
+        <audio class="tie" src="assets/tie.mp3"></audio>
         <div class="gameboard">
         </div>
     </div>
