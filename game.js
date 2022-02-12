@@ -2,11 +2,11 @@
 
 const settings = {
     AutoStartNewGame: false,
-    AIPlayerTurnLengthMS: 1200,
+    AIPlayerTurnLengthMS: 800,
     DefaultGameBoardSize: 3,
 }
 
-const markTypes = {
+const markType = {
     x: 'x',
     o: 'o',
 }
@@ -16,6 +16,13 @@ const directionType = {
     col: Symbol('col'),
     diagUp: Symbol('diagUp'),
     diagDown: Symbol('diagDown'),
+}
+
+const soundEffect = {
+    player1go: 'player1-go',
+    player2go: 'player2-go',
+    win: 'win',
+    lose: 'lose',
 }
 
 const Player = (id, name, markType) => {
@@ -82,8 +89,8 @@ const game = (function(gameBoardSize) {
     let _firstPlayerID = 1;
     let _currentPlayerID;
     let _aiPlayerIsThinking = false;
-    const _player1 = Player(1, 'Player 1', markTypes.x);
-    const _player2 = Player(2, 'Player 2', markTypes.o);
+    const _player1 = Player(1, 'Player 1', markType.x);
+    const _player2 = Player(2, 'Player 2', markType.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     const getOpponentPlayerID = (id) => (id === 1 ? 2 : 1);
@@ -591,21 +598,25 @@ const game = (function(gameBoardSize) {
             document.querySelector('#player1 .depth span').textContent = getPlayerById(1).maxRecursionDepth;
             document.querySelector('#player2 .depth span').textContent = getPlayerById(2).maxRecursionDepth;
 
+            // debug info
             const empty = gameBoard.getEmptySquareCount();
             document.querySelector('#player1 .empty span').textContent = empty;
             document.querySelector('#player2 .empty span').textContent = empty;
-
             document.querySelector('#player1 .workers span').textContent = _player1.numWorkers;
             document.querySelector('#player2 .workers span').textContent = _player2.numWorkers;
 
+            document.querySelector('.message h2').textContent = _getGameStateMessage();
+            
             document.querySelector('.games-played span').textContent = _gamesPlayed.toString();
 
+            // current player animation
             document.querySelector('#player1.player').classList.remove('player--current');
             document.querySelector('#player1.player').classList.remove('pulse-color');
     
             document.querySelector('#player2.player').classList.remove('player--current');
             document.querySelector('#player2.player').classList.remove('pulse-color');
     
+            // new game button animation
             document.querySelector('.game-controls__new-game').classList.remove('pulse-size');
     
             if (isGameOver()) {
@@ -615,6 +626,18 @@ const game = (function(gameBoardSize) {
             }
         }
     
+        function _getGameStateMessage() {
+            if (_winner) {
+                return getCurrentPlayer().name + ' WINS!'
+            }
+            else if (isGameOver()) {
+                return 'Tie Game!';
+            } 
+            else {
+                return getCurrentPlayer().name + "'s Turn"
+            }
+        }
+
         function _highlightCurrentPlayer() {
             const player = document.querySelector('#player' + getCurrentPlayer().id + '.player');
             player.classList.add('player--current');
@@ -630,11 +653,11 @@ const game = (function(gameBoardSize) {
                     let mark = gameBoard.squareGetMark(i, j);
     
                     switch(mark) {
-                        case markTypes.x:
+                        case markType.x:
                             div.classList.add('gameboard__square--x');
                             div.textContent = 'X';
                             break;
-                        case markTypes.o:
+                        case markType.o:
                             div.classList.add('gameboard__square--o');
                             div.textContent = 'O';
                             break;
@@ -716,7 +739,7 @@ const game = (function(gameBoardSize) {
             maxRecursionDepth = 1;
         }
         else if (aiLevel === 2) {
-            maxRecursionDepth = Math.min(4, emptySquares - 1);
+            maxRecursionDepth = Math.min(6, emptySquares - 1);
         }
         else {
             if (emptySquares <= 13) {
@@ -729,7 +752,7 @@ const game = (function(gameBoardSize) {
                 maxRecursionDepth = 9;
             } 
             else {
-                maxRecursionDepth = 8;
+                maxRecursionDepth = 9;
             }
         }
         
@@ -739,14 +762,15 @@ const game = (function(gameBoardSize) {
     function _terminateAIWorkers() {
         for (let i = 0; i < aiWorkers.length; i++) {
             aiWorkers[i].terminate();
+            aiWorkers[i] = null;
         }
 
-        aiWorkers = [];
+        aiWorkers.length = 0;
     }
 
     function _aiPlayerTakeTurn(aiLevel) {
         _aiPlayerIsThinking = true;
-        
+        const markType = getCurrentPlayer().markType;
         let bestMove = {};
 
         if (gameBoard.isEmpty()) {
@@ -757,11 +781,17 @@ const game = (function(gameBoardSize) {
                 const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
                 bestMove = { row: i, col: j };
             }
+            else if (getCurrentPlayer().aiLevel === 3 && gameBoard.size === 5) {
+                const i = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
+                const j = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
+                bestMove = { row: i, col: j };
+            }
             else {
                 // choose a random square
                 bestMove = gameBoard.getRandomEmptySquare();
             }
-            gameBoard.squareSetMark(bestMove.row, bestMove.col, getCurrentPlayer().markType);
+
+            gameBoard.squareSetMark(bestMove.row, bestMove.col, markType);
             _turnFinished();
         }
         else {
@@ -778,7 +808,7 @@ const game = (function(gameBoardSize) {
 
             let bestScore = -Infinity;
 
-            const markType = getCurrentPlayer().markType;
+            
             
             let numWorkersResponded = 0;
 
@@ -789,6 +819,7 @@ const game = (function(gameBoardSize) {
                 // Deploy a worker to evaluate the current move:
                 let worker = new Worker('worker.js');
                 getCurrentPlayer().numWorkers = aiWorkers.push(worker);
+                
                 displayController.updateDashBoard(); // for debugging, show number of workers
     
                 worker.postMessage({ maxDepth: maxRecursionDepth,
@@ -814,7 +845,7 @@ const game = (function(gameBoardSize) {
                     numWorkersResponded += 1;
                     if (numWorkersResponded === aiWorkers.length) {
                         // All workers are finished, play the best move:
-                        gameBoard.squareSetMark(bestMove.row, bestMove.col, getCurrentPlayer().markType);
+                        gameBoard.squareSetMark(bestMove.row, bestMove.col, markType);
                         _turnFinished();
                     }
                 }
@@ -841,6 +872,24 @@ const game = (function(gameBoardSize) {
             _winner.getPlayer().win();
         }
 
+        if (_winner) {
+            if (_winner.getPlayer().aiLevel === 0) {
+                _playPlayerSound(soundEffect.win);
+            } 
+            else {
+                _playPlayerSound(soundEffect.lose);
+            }
+        }
+        else if (isGameOver()) {
+            _playPlayerSound(soundEffect.lose);
+        }
+        else if (_currentPlayerID === 1) {
+            _playPlayerSound(soundEffect.player1go);
+        }
+        else if (_currentPlayerID === 2) {
+            _playPlayerSound(soundEffect.player2go);
+        }
+
         _currentPlayerID = (_currentPlayerID % 2) + 1;
         _playerTimeElapsed = 0;
 
@@ -848,10 +897,15 @@ const game = (function(gameBoardSize) {
             _gamesPlayed += 1;
         }
 
-        //const sym = gameBoard.isSymmetric();
-        //if (sym) console.log(sym);
-
         displayController.update();
+    }
+
+    function _playPlayerSound(sound) {
+        const audio = document.querySelector(`.${sound}`);
+        if (!audio) return;
+
+        audio.currentTime = 0;
+        audio.play();
     }
 
     function _gameLoop(timeStamp) {

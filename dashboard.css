@@ -11,6 +11,7 @@
     background: var(--color-bg1);
     box-sizing: border-box;
     box-shadow: var(--section-shadow);
+    color: var(--color-palette-5);
 }
 
 .players {
@@ -23,14 +24,24 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 5px 0px 0;
+    padding: 10px 0;
     margin: 10px;
     width: 50%;
-    background: var(--color-bg2);
-    border: 10px solid var(--color-bg2);
     border-radius: 10px;
+    border: 5px solid #fff0;
     box-sizing: border-box;
     min-width: 0;
+    box-shadow: var(--square-shadow);
+}
+
+#player1.player {
+    color: var(--color-player1-fg);
+    background: var(--color-player1-bg);
+}
+
+#player2.player {
+    color: var(--color-player2-fg);
+    background: var(--color-player2-bg);
 }
 
 .player--current {
@@ -52,16 +63,10 @@
     transition: background-color 0.3s ease-out;
 }
 
-#player1 .player__score span,
-#player1 .player__button {
-    background: var(--color-player1-bg);
-    color: var(--color-player1-fg);
-}
-
-#player2 .player__score span,
-#player2 .player__button {
-    background: var(--color-player2-bg);
-    color: var(--color-player2-fg);
+.player__score span,
+.player__button {
+    background: var(--color-palette-2);
+    color: var(--color-palette-2c);
 }
 
 #player1 .player__button:hover,
@@ -79,13 +84,13 @@
     animation-name: pulse-color;
 }
 
-.game-controls .pulse-size {    
+.pulse-size {    
     animation-name: pulse-size;
 }
 
 .pulse-color,
 .pulse-size {
-    animation-duration: 0.66s;
+    animation-duration: 0.5s;
     animation-timing-function: cubic-bezier(0.445, 0.05, 0.55, 0.95);
     animation-direction: alternate;
     animation-iteration-count: infinite;    
@@ -93,10 +98,12 @@
 
 @keyframes pulse-color {
     0% {
-        border-color: var(--color-player-current-bg);
+        /*border-color: var(--color-player-current-bg);*/
+        border: 5px solid rgba(var(--color-palette-2-r), var(--color-palette-2-g), var(--color-palette-2-b), 1);
     }
     100% {
-        border-color: var(--color-player-current-border);
+        /*border-color: var(--color-player-current-border);*/
+        border: 5px solid rgba(var(--color-palette-2-r), var(--color-palette-2-g), var(--color-palette-2-b), 0);
     }
 }
 
