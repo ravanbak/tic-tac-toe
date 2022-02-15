@@ -1,18 +1,15 @@
 'use strict';
 
+self.importScripts('types.js');
+
 let squares = [];
 let gameBoardSize;
 let maxRecursionDepth;
 let currentPlayerMark;
 let opposingPlayerMark;
 let minWinSquares;
-
-const directionType = {
-    row: Symbol('row'),
-    col: Symbol('col'),
-    diagUp: Symbol('diagUp'),
-    diagDown: Symbol('diagDown'),
-}
+let alpha;
+let beta;
 
 onmessage = function(e) {
     squares = e.data['squares'];
@@ -21,10 +18,12 @@ onmessage = function(e) {
     minWinSquares = e.data['minWinSquares'];
     currentPlayerMark = e.data['currentPlayerMark'];
     opposingPlayerMark = (currentPlayerMark === 'x') ? 'o' : 'x';
+    alpha = e.data.alpha;
+    beta = e.data.beta;
 
-    const score = minimax(squares, 1, -Infinity, Infinity, false);
-
-    postMessage({ score });
+    const score = minimax(squares, 1, alpha, beta, false);
+    
+    postMessage({ score, alpha, beta });
 }
 
 const gameboardIsFull = () => squares.filter(row => row.filter(square => square == '').length === 0).length == gameBoardSize;

@@ -6,81 +6,11 @@ const settings = {
     DefaultGameBoardSize: 3,
 }
 
-const markType = {
-    x: 'x',
-    o: 'o',
-}
-
-const directionType = {
-    row: Symbol('row'),
-    col: Symbol('col'),
-    diagUp: Symbol('diagUp'),
-    diagDown: Symbol('diagDown'),
-}
-
-const soundEffect = {
-    player1go: document.querySelector('.player1-go'),
-    player2go: document.querySelector('.player2-go'),
-    win: document.querySelector('.win'), // human wins
-    lose: document.querySelector('.lose'), // human loses to AI
-    tie: document.querySelector('.tie'), // tie game, or AI vs AI game over
-}
-
-const Player = (id, name, markType) => {
-    let _score = 0;
-    let _name = name;
-    let _markType = markType;
-    let _aiLevel = 0; // 0 = human, > 0 = level of difficulty
-    let _maxRecursionDepth; // current recursion depth, for debug output
-    let _numWorkers = 0; // current number of workers running, for debug output
-
-    const reset = () => _score = 0;
-    const win = () => _score++;
-    const getScore = () => _score;
-
-    return {
-        id,
-        reset,
-        set name(value) {
-            _name = value;
-        },
-        get name() {
-            return _name;
-        },
-        /**
-         * @param {markTypes} value
-         */
-        set markType(value) {
-            _markType = value;
-        },
-        get markType() {
-            return _markType;
-        },
-        set aiLevel(value) {
-            _aiLevel = value;
-        },
-        get aiLevel() {
-            return _aiLevel;
-        },
-        set maxRecursionDepth(value) {
-            _maxRecursionDepth = value;
-        },
-        get maxRecursionDepth() {
-            return _maxRecursionDepth;
-        },
-        set numWorkers(value) {
-            _numWorkers = value;
-        },
-        get numWorkers() {
-            return _numWorkers;
-        },        
-        getScore,
-        win,
-    }
-}
-
 const game = (function(gameBoardSize) {
     'use strict';
+
+    let timeStart;
+    let timeEnd;
 
     let _gamesPlayed = 0;
     let _gameLoopTimeStamp = 0;
@@ -97,6 +27,14 @@ const game = (function(gameBoardSize) {
     const getOpponentPlayerID = (id) => (id === 1 ? 2 : 1);
     const getOpponentPlayer = () => getPlayerById(getOpponentPlayerID(_currentPlayerID));
     let _winnerInfo = null;
+
+    const soundEffect = {
+        player1go: document.querySelector('.player1-go'),
+        player2go: document.querySelector('.player2-go'),
+        win: document.querySelector('.win'), // human wins
+        lose: document.querySelector('.lose'), // human loses to AI
+        tie: document.querySelector('.tie'), // tie game, or AI vs AI game over
+    }
 
     let aiWorkers = [];
 
@@ -806,10 +744,10 @@ const game = (function(gameBoardSize) {
             _terminateAIWorkers();
 
             let bestScore = -Infinity;
-
-            
-            
             let numWorkersResponded = 0;
+
+            let alpha = -Infinity;
+            let beta = Infinity;
 
             for (let i = 0; i < locations.length; i++) {
                 let loc = locations[i];
@@ -825,7 +763,9 @@ const game = (function(gameBoardSize) {
                                      minWinSquares: numSquaresInARowToWin(),
                                      currentPlayerID: getCurrentPlayer().id,
                                      currentPlayerMark: markType,
-                                     squares: squares });
+                                     squares: squares,
+                                     alpha: alpha,
+                                     beta: beta  });
                 
                 squares[loc.row][loc.col] = '';
 
@@ -835,6 +775,9 @@ const game = (function(gameBoardSize) {
                     getCurrentPlayer().numWorkers -= 1;
                     displayController.updateDashBoard();
 
+                    alpha = e.data.alpha;
+                    beta = e.data.beta;
+
                     let score = e.data.score;
                     if (score > bestScore) {
                         bestScore = score;
@@ -843,6 +786,9 @@ const game = (function(gameBoardSize) {
                     
                     numWorkersResponded += 1;
                     if (numWorkersResponded === aiWorkers.length) {
+                        let timeEnd = performance.now();
+                        console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
+    
                         // All workers are finished, play the best move:
                         gameBoard.squareSetMark(bestMove.row, bestMove.col, markType);
                         _turnFinished();
@@ -935,6 +881,7 @@ const game = (function(gameBoardSize) {
             if (!_aiPlayerIsThinking) {
                 const ai = getCurrentPlayer().aiLevel;
                 if (ai) {
+                    timeStart = performance.now();
                     _aiPlayerTakeTurn(ai);
                 }
             }
