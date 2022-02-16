@@ -55,8 +55,6 @@ const game = (function(gameBoardSize) {
     }
 
     const gameBoard = (function(size) {
-        'use strict';
-    
         let _squares = []; // size * size square grid
 
         const squareIsBlank = (row, col) => _squares[row][col] === '';
@@ -78,56 +76,6 @@ const game = (function(gameBoardSize) {
         }
         reset();
         
-        function getSymmetry() {
-            // Returns flags for each axis (vertical, horizontal, diag up, diag down)
-            // indicating if the marks on the gameboard are symmetric about the axis.
-
-            let symmetricRow = true;
-            let symmetricCol = true;
-
-            const halfSize = Math.floor(size / 2);
-            for (let i = 0; i < size; i++) {
-                for (let j = 0; j < halfSize; j++) {
-                    if (_squares[i][j] !== _squares[i][size - 1 - j]) {
-                        symmetricRow = false;
-                    }
-                    if (_squares[j][i] !== _squares[size - 1 - j][i]) {
-                        symmetricCol = false;
-                    }
-                }
-            }
-
-            let symmetricDiagUp = false;
-            let symmetricDiagDown = false;
-
-            if (!symmetricRow && !symmetricCol) {
-                symmetricDiagUp = true;
-                symmetricDiagDown = true;
-
-                for (let i = 0; i < size; i++) {
-                    for (let j = 0; j < size; j++) {
-                        if (i !== j) {
-                            if (_squares[i][j] !== _squares[j][i]) {
-                                symmetricDiagDown = false;
-                            }
-                        }
-                        if (i !== size - 1 - j) {
-                            if (_squares[i][j] !== _squares[size - 1 - j][size - 1 - i]) {
-                                symmetricDiagUp = false;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return {
-                row: symmetricRow,
-                col: symmetricCol,
-                diagUp: symmetricDiagUp,
-                diagDown: symmetricDiagDown
-            }
-        }
-
         function getEmptySquareCount() {
             return _squares.reduce((prev, cur) => prev + cur.filter(el => el === '').length, 0);
         }
@@ -145,186 +93,6 @@ const game = (function(gameBoardSize) {
             }
 
             return {row, col};
-        }
-
-        function _getAdjacentSquare(loc, direction, factor) {
-            const offset = 1 * factor; // offset 1 = next, -1 = previous
-
-            switch (direction) {
-                case directionType.row:
-                    loc.col += offset;
-                    break;
-                
-                case directionType.col:
-                    loc.row += offset;
-                    break;
-
-                case directionType.diagUp:
-                    loc.row -= offset;
-                    loc.col += offset;
-                    break;
-
-                case directionType.diagDown:
-                    loc.row += offset;
-                    loc.col += offset;
-                    break;    
-            }
-
-            return loc;
-        }
-
-        function getPlayableLocations() {
-            // Return an array of available locations, prioritizing
-            // locations that are adjacent to non-empty squares.
-            //
-            // If marks on the gameboard are symmetric about a center
-            // axis, only return the squares on one side of the axis
-            // plus the squares on the axis (if size is odd, or diagonal axis).
-
-            let iEnd = size;
-            let jEnd = size;
-            
-            const halfSize = Math.ceil(size / 2);
-            const symmetry = getSymmetry();
-            if (symmetry.row) {
-                jEnd = halfSize;
-            }
-            if (symmetry.col) {
-                iEnd = halfSize;
-            }
-
-            let squaresPriority1 = [];
-            let squaresPriority2 = [];
-
-            for (let i = 0; i < iEnd; i++) {
-                for (let j = 0; j < jEnd; j++) {
-                    if (_squares[i][j] !== '') {
-                        continue;
-                    }
-                    
-                    if (symmetry.diagUp) {
-                        if (i + j > size - 1) {
-                            // this square is equivalent to an
-                            // earlier square since the marks
-                            // are diagonally symmetric
-                            continue;
-                        }
-                    }
-                    if (symmetry.diagDown) {
-                        if (i - j > 0) {
-                            // this square is equivalent to an
-                            // earlier square since the marks
-                            // are diagonally symmetric
-                            continue;
-                        }
-                    }
-
-                    let loc = { row: i, col: j };
-
-                    if (adjacentSquareHasMark(loc)) {
-                        squaresPriority1.push(loc);
-                    }
-                    else {
-                        squaresPriority2.push(loc);
-                    }
-                }
-            }
-
-            return squaresPriority1.concat(squaresPriority2);
-        }
-
-        function adjacentSquareHasMark(loc) {
-            const rowFirst = Math.max(0, loc.row - 1);
-            const rowLast = Math.min(size - 1, loc.row + 1);
-
-            const colFirst = Math.max(0, loc.col - 1);
-            const colLast = Math.min(size - 1, loc.col + 1);
-
-            for (let i = rowFirst; i <= rowLast; i++) {
-                for (let j = colFirst; j <= colLast; j++) {
-                    if (i !== loc.row || j !== loc.col) {
-                        if (_squares[i][j] !== '') {
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        function _matchNextNSquares(n, loc, direction) {
-            // Starting at square 'loc', check the next 'n' adjacent 
-            // squares and return all locations if they match.
-
-            if (squareIsBlank(loc.row, loc.col)) {
-                return null;
-            }
-
-            let winningLocations = [ { row:loc.row, col:loc.col } ]; // save a copy of 'loc'
-
-            const markType = _squares[loc.row][loc.col];
-
-            for (let i = 0; i < n; i++) {
-                let nextSquare = _getAdjacentSquare(loc, direction, 1);
-                if (_squares[nextSquare.row][nextSquare.col] === markType) {
-                    loc = nextSquare;
-                    winningLocations.push({ row:loc.row, col:loc.col } ); // save a copy of next 'loc'
-                } 
-                else {
-                    return null;
-                }
-            }
-
-            return winningLocations;
-        }
-
-        function getWinnerN(numSquaresToWin) {
-            // Check for 'numSquaresToWin' matching marks in a row
-            // in all directions (up, down, diagonal) starting from
-            // the top rows and left columns of the gameboard.
-
-            const n = numSquaresToWin - 1;
-
-            // We only need to check squares where there are 'n' more
-            // squares available on the board in the given direction.
-            const lastIndex = size - numSquaresToWin + 1;
-
-            let direction;
-            let matchingSquares;
-
-            // check for row or column winner
-            for (let i = 0; i < size; i++) {
-                for (let j = 0; j < lastIndex; j++) {
-                    direction = directionType.row;
-
-                    matchingSquares = _matchNextNSquares(n, {row:i, col:j}, direction);
-                    if (matchingSquares) {
-                        return WinnerInfo(_squares[i][j], matchingSquares);
-                    }
-                    
-                    direction = directionType.col;
-                    matchingSquares = _matchNextNSquares(n, {row:j, col:i}, direction);
-                    if (matchingSquares) {
-                        return WinnerInfo(_squares[j][i], matchingSquares);
-                    }
-
-                    if (i < lastIndex && j < lastIndex) {
-                        direction = directionType.diagDown;
-                        matchingSquares = _matchNextNSquares(n, {row:i, col:j}, direction);
-                        if (matchingSquares) {
-                            return WinnerInfo(_squares[i][j], matchingSquares);
-                        } 
-                        
-                        let row = size - 1 - i;
-                        direction = directionType.diagUp;
-                        matchingSquares = _matchNextNSquares(n, {row:row, col:j}, direction);
-                        if (matchingSquares) {
-                            return WinnerInfo(_squares[row][j], matchingSquares);
-                        }   
-                    }
-                }
-            }
         }
 
         return {
@@ -346,9 +114,6 @@ const game = (function(gameBoardSize) {
             getRandomEmptySquare,
             isFull,
             isEmpty,
-            getSymmetry,
-            getPlayableLocations,
-            getWinnerN,
         }
     })(gameBoardSize);    
 
@@ -735,7 +500,7 @@ const game = (function(gameBoardSize) {
             // use minimax to find best move
 
             let squares = gameBoard.squares;
-            let locations = gameBoard.getPlayableLocations();
+            let locations = getPlayableLocations(squares);
             let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
 
             getCurrentPlayer().maxRecursionDepth = maxRecursionDepth;
@@ -745,9 +510,6 @@ const game = (function(gameBoardSize) {
 
             let bestScore = -Infinity;
             let numWorkersResponded = 0;
-
-            let alpha = -Infinity;
-            let beta = Infinity;
 
             for (let i = 0; i < locations.length; i++) {
                 let loc = locations[i];
@@ -763,9 +525,7 @@ const game = (function(gameBoardSize) {
                                      minWinSquares: numSquaresInARowToWin(),
                                      currentPlayerID: getCurrentPlayer().id,
                                      currentPlayerMark: markType,
-                                     squares: squares,
-                                     alpha: alpha,
-                                     beta: beta  });
+                                     squares: squares });
                 
                 squares[loc.row][loc.col] = '';
 
@@ -774,9 +534,6 @@ const game = (function(gameBoardSize) {
 
                     getCurrentPlayer().numWorkers -= 1;
                     displayController.updateDashBoard();
-
-                    alpha = e.data.alpha;
-                    beta = e.data.beta;
 
                     let score = e.data.score;
                     if (score > bestScore) {
@@ -812,7 +569,7 @@ const game = (function(gameBoardSize) {
     function _turnFinished() {
         _aiPlayerIsThinking = false;
 
-        _winnerInfo = gameBoard.getWinnerN(numSquaresInARowToWin());
+        _winnerInfo = getWinnerN(gameBoard.squares, numSquaresInARowToWin());
 
         if (_winnerInfo) {
             const winner = _winnerInfo.getPlayer();
