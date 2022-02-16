@@ -23,9 +23,10 @@ const game = (function(gameBoardSize) {
     const _player1 = Player(1, 'Player 1', markType.x);
     const _player2 = Player(2, 'Player 2', markType.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
+    const getPlayerByMarkType = (markType) => (markType === _player1.markType ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
-    const getOpponentPlayerID = (id) => (id === 1 ? 2 : 1);
-    const getOpponentPlayer = () => getPlayerById(getOpponentPlayerID(_currentPlayerID));
+    const getCurrentOpponentPlayer = () => getPlayerById(getPlayerOpponentID(_currentPlayerID));
+    const getPlayerOpponentID = (playerID) => (playerID === 1 ? 2 : 1);
     let _winnerInfo = null;
 
     const soundEffect = {
@@ -37,22 +38,6 @@ const game = (function(gameBoardSize) {
     }
 
     let aiWorkers = [];
-
-    const WinnerInfo = (markType, winningSquares) => {
-        const getPlayer = () => {
-            switch (markType) {
-                case _player1.markType:
-                    return _player1;
-                case _player2.markType:
-                    return _player2;
-            } 
-        }
-
-        return {
-            getPlayer,
-            winningSquares, 
-        };
-    }
 
     const gameBoard = (function(size) {
         let _squares = []; // size * size square grid
@@ -330,7 +315,7 @@ const game = (function(gameBoardSize) {
     
         function _getGameStateMessage() {
             if (_winnerInfo) {
-                return _winnerInfo.getPlayer().name + ' WINS!'
+                return getPlayerByMarkType(_winnerInfo.markType).name + ' WINS!'
             }
             else if (isGameOver()) {
                 return 'Tie Game!';
@@ -572,8 +557,8 @@ const game = (function(gameBoardSize) {
         _winnerInfo = getWinnerN(gameBoard.squares, numSquaresInARowToWin());
 
         if (_winnerInfo) {
-            const winner = _winnerInfo.getPlayer();
-            const loser = getOpponentPlayer();
+            const winner = getPlayerByMarkType(_winnerInfo.markType);
+            const loser = getPlayerById(getPlayerOpponentID(winner.id));
 
             winner.win();
         
@@ -618,7 +603,7 @@ const game = (function(gameBoardSize) {
         document.body.style.cursor = _aiPlayerIsThinking ? 'progress' : 'default';
 
         if (isGameOver()) {
-            _firstPlayerID = getOpponentPlayerID(_firstPlayerID); // swap who gets to go first next game
+            _firstPlayerID = getPlayerOpponentID(_firstPlayerID); // swap who gets to go first next game
 
             if (settings.AutoStartNewGame) {
                 newGame();

@@ -83,7 +83,7 @@ function getPlayableLocations(squares) {
     // plus the squares on the axis (if size is odd, or diagonal axis).
 
     const size = squares.length;
-    
+
     let iEnd = size;
     let jEnd = size;
     
@@ -210,27 +210,27 @@ function getWinnerN(squares, numSquaresToWin) {
 
             matchingSquares = matchNextNSquares(squares, n, {row:i, col:j}, direction);
             if (matchingSquares) {
-                return squares[i][j];
+                return WinnerInfo(squares[i][j], matchingSquares);
             }
             
             direction = directionType.col;
             matchingSquares = matchNextNSquares(squares, n, {row:j, col:i}, direction);
             if (matchingSquares) {
-                return squares[j][i];
+                return WinnerInfo(squares[j][i], matchingSquares);
             }
 
             if (i < lastIndex && j < lastIndex) {
                 direction = directionType.diagDown;
                 matchingSquares = matchNextNSquares(squares, n, {row:i, col:j}, direction);
                 if (matchingSquares) {
-                    return squares[i][j];
+                    return WinnerInfo(squares[i][j], matchingSquares);
                 } 
                 
                 let row = size - 1 - i;
                 direction = directionType.diagUp;
                 matchingSquares = matchNextNSquares(squares, n, {row:row, col:j}, direction);
                 if (matchingSquares) {
-                    return squares[row][j];
+                    return WinnerInfo(squares[row][j], matchingSquares);
                 }   
             }
         }

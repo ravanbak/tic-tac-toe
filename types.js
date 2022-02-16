@@ -62,3 +62,10 @@ const Player = (id, name, markType) => {
         win,
     }
 }
+
+const WinnerInfo = (markType, winningSquares) => {
+    return {
+        markType,
+        winningSquares, 
+    };
+}
