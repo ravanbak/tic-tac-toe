@@ -3,7 +3,7 @@
 self.importScripts('types.js');
 self.importScripts('util.js');
 
-let squares = [];
+//let squares = [];
 let gameBoardSize;
 let maxRecursionDepth;
 let currentPlayerMark;
@@ -11,7 +11,7 @@ let opposingPlayerMark;
 let minWinSquares;
 
 onmessage = function(e) {
-    squares = e.data['squares'];
+    let squares = e.data['squares'];
     gameBoardSize = squares.length;
     maxRecursionDepth = e.data['maxDepth'];
     minWinSquares = e.data['minWinSquares'];
@@ -23,16 +23,17 @@ onmessage = function(e) {
     postMessage({ score });
 }
 
-const gameboardIsFull = () => squares.filter(row => row.filter(square => square == '').length === 0).length == gameBoardSize;
+const gameboardIsFull = (squares) => squares.filter(row => row.filter(square => square == '').length === 0).length == gameBoardSize;
 
 function minimax(squares, depth, a, b, isMaximizing) {
     // Returns a score for the specified gameboard state ('squares').
 
-    const winnerMarkType = getWinnerN(squares, minWinSquares);
-    if (winnerMarkType) {
-        return (winnerMarkType === currentPlayerMark) ? 100 : -100;
+    const winnerInfo = getWinnerN(squares, minWinSquares);
+
+    if (winnerInfo) {
+        return (winnerInfo.markType === currentPlayerMark) ? 100 : -100;
     } 
-    else if (gameboardIsFull()) {
+    else if (gameboardIsFull(squares)) {
         return 0;
     }
     else if (depth > maxRecursionDepth) {
