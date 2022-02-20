@@ -3,7 +3,6 @@
 self.importScripts('types.js');
 self.importScripts('util.js');
 
-//let squares = [];
 let gameBoardSize;
 let maxRecursionDepth;
 let currentPlayerMark;
@@ -13,9 +12,9 @@ let minWinSquares;
 onmessage = function(e) {
     let squares = e.data['squares'];
     gameBoardSize = squares.length;
-    maxRecursionDepth = e.data['maxDepth'];
-    minWinSquares = e.data['minWinSquares'];
-    currentPlayerMark = e.data['currentPlayerMark'];
+    maxRecursionDepth = e.data.maxDepth;
+    minWinSquares = e.data.minWinSquares;
+    currentPlayerMark = e.data.currentPlayerMark;
     opposingPlayerMark = (currentPlayerMark === 'x') ? 'o' : 'x';
 
     const score = minimax(squares, 1, -Infinity, Infinity, false);
@@ -31,7 +30,7 @@ function minimax(squares, depth, a, b, isMaximizing) {
     const winnerInfo = getWinnerN(squares, minWinSquares);
 
     if (winnerInfo) {
-        return (winnerInfo.markType === currentPlayerMark) ? 100 : -100;
+        return (winnerInfo.mark === currentPlayerMark) ? 1000 : -1000;
     } 
     else if (gameboardIsFull(squares)) {
         return 0;
@@ -41,13 +40,13 @@ function minimax(squares, depth, a, b, isMaximizing) {
     }
 
     let bestScore = isMaximizing ? -Infinity : Infinity;
-    const markType = isMaximizing ? currentPlayerMark : opposingPlayerMark;
+    const mark = isMaximizing ? currentPlayerMark : opposingPlayerMark;
 
     let locations = getPlayableLocations(squares);
     for (let i = 0; i < locations.length; i++) {
         let loc = locations[i];
                 
-        squares[loc.row][loc.col] = markType;
+        squares[loc.row][loc.col] = mark;
         let score = minimax(squares, depth + 1, a, b, !isMaximizing);
         squares[loc.row][loc.col] = '';
 
@@ -58,7 +57,6 @@ function minimax(squares, depth, a, b, isMaximizing) {
             if (bestScore >= b) {
                 break; // beta cutoff
             }
-
         } 
         else {
             bestScore = Math.min(bestScore, score);
@@ -70,5 +68,5 @@ function minimax(squares, depth, a, b, isMaximizing) {
         }
     }
 
-    return bestScore - depth;
+    return bestScore / depth;
 }

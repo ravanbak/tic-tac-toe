@@ -23,7 +23,7 @@ const game = (function(gameBoardSize) {
     const _player1 = Player(1, 'Player 1', markType.x);
     const _player2 = Player(2, 'Player 2', markType.o);
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
-    const getPlayerByMarkType = (markType) => (markType === _player1.markType ? _player1 : _player2);
+    const getPlayerByMark = (mark) => (mark === _player1.mark ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     const getCurrentOpponentPlayer = () => getPlayerById(getPlayerOpponentID(_currentPlayerID));
     const getPlayerOpponentID = (playerID) => (playerID === 1 ? 2 : 1);
@@ -41,10 +41,12 @@ const game = (function(gameBoardSize) {
 
     const gameBoard = (function(size) {
         let _squares = []; // size * size square grid
+        let _scores = []; // minimax score for eachs square
 
         const squareIsBlank = (row, col) => _squares[row][col] === '';
-        const squareSetMark = (row, col, markType) => _squares[row][col] = markType;
+        const squareSetMark = (row, col, mark) => _squares[row][col] = mark;
         const squareGetMark = (row, col) => _squares[row][col];
+        const squareGetScore = (row, col) => _scores[row][col];
         const isFull = () => _squares.filter(row => row.filter(square => square == '').length === 0).length == size;
         const isEmpty = () => _squares.filter(row => row.filter(square => square == '').length === size).length == size;
         
@@ -56,6 +58,15 @@ const game = (function(gameBoardSize) {
                 _squares.push(row);
                 for (let j = 0; j < size; j++) {
                     _squares[i].push('');
+                }
+            }
+
+            _scores = [];
+            for (let i = 0; i < size; i++) {
+                const row = [];
+                _scores.push(row);
+                for (let j = 0; j < size; j++) {
+                    _scores[i].push(0);
                 }
             }
         }
@@ -92,8 +103,12 @@ const game = (function(gameBoardSize) {
             squareIsBlank,
             squareSetMark,
             squareGetMark,
+            squareGetScore,
             get squares() {
                 return _squares;
+            },
+            get scores() {
+                return _scores;
             },
             getEmptySquareCount,
             getRandomEmptySquare,
@@ -202,8 +217,8 @@ const game = (function(gameBoardSize) {
                 return;
             }
 
-            const row = e.target.dataset['row'];
-            const col = e.target.dataset['col'];
+            const row = e.currentTarget.dataset['row'];
+            const col = e.currentTarget.dataset['col'];
 
             humanPlayerTakeTurn(row, col);
         }
@@ -211,7 +226,7 @@ const game = (function(gameBoardSize) {
         function _createGameBoard() {
             const size = gameBoard.size;
     
-            const cssFontPercent = parseInt((90 / size).toString());
+            const cssFontPercent = parseInt((80 / size).toString());
             const cssFontSize = `min(${cssFontPercent}vw, ${cssFontPercent * 0.66}vh)`;
             const cssSquareSizePercent = (100 / size).toString() + '%';
 
@@ -246,6 +261,15 @@ const game = (function(gameBoardSize) {
                         divSquare.style.borderRight = 'none';
                     }
     
+                    let divMark = document.createElement('div');
+                    divMark.classList.add('mark');
+                    divSquare.appendChild(divMark);
+
+                    let divScore = document.createElement('div');
+                    divScore.classList.add('score');
+                    divScore.style.fontSize = '12pt';
+                    divSquare.appendChild(divScore);
+
                     divRow.appendChild(divSquare);
                 }
     
@@ -315,7 +339,7 @@ const game = (function(gameBoardSize) {
     
         function _getGameStateMessage() {
             if (_winnerInfo) {
-                return getPlayerByMarkType(_winnerInfo.markType).name + ' WINS!'
+                return getPlayerByMark(_winnerInfo.markType).name + ' WINS!'
             }
             else if (isGameOver()) {
                 return 'Tie Game!';
@@ -338,19 +362,21 @@ const game = (function(gameBoardSize) {
                     let i = div.dataset.row;
                     let j = div.dataset.col;
                     let mark = gameBoard.squareGetMark(i, j);
-    
+                    let score = gameBoard.squareGetScore(i, j);
+                    div.querySelector('.score').textContent = score.toFixed(1);    
+
                     switch(mark) {
                         case markType.x:
                             div.classList.add('gameboard__square--x');
-                            div.textContent = 'X';
+                            div.querySelector('.mark').textContent = 'X';
                             break;
                         case markType.o:
                             div.classList.add('gameboard__square--o');
-                            div.textContent = 'O';
+                            div.querySelector('.mark').textContent = 'O';
                             break;
                         default:
                             div.classList.remove('gameboard__square--x', 'gameboard__square--o');
-                            div.textContent = '';
+                            div.querySelector('.mark').textContent = '';
                     }
                     
                     div.classList.remove('gameboard__square--winner');
@@ -362,6 +388,17 @@ const game = (function(gameBoardSize) {
                 for (let i = 0; i < winningLocations.length; i++) {
                     let row = winningLocations[i].row;
                     let col = winningLocations[i].col;
+                    let s = '.gameboard__square[data-row=' + "'" + row.toString() + "'" + ']';
+                    s += '[data-col=' + "'" + col.toString() + "'" + ']';
+                    let div = document.querySelector(s);
+                    div.classList.add('gameboard__square--winner');
+                }
+            } 
+            else {
+                const locations = getPlayableLocations(gameBoard.squares);
+                for (let i = 0; i < locations.length; i++) {
+                    let row = locations[i].row;
+                    let col = locations[i].col;
                     let s = '.gameboard__square[data-row=' + "'" + row.toString() + "'" + ']';
                     s += '[data-col=' + "'" + col.toString() + "'" + ']';
                     let div = document.querySelector(s);
@@ -423,7 +460,7 @@ const game = (function(gameBoardSize) {
         let maxRecursionDepth;
 
         if (aiLevel === 1) {
-            maxRecursionDepth = 1;
+            maxRecursionDepth = 2;
         }
         else if (aiLevel === 2) {
             maxRecursionDepth = Math.min(6, emptySquares - 1);
@@ -433,10 +470,10 @@ const game = (function(gameBoardSize) {
                 maxRecursionDepth = 13; //emptySquares;
             }
             else if (emptySquares <= 16) {
-                maxRecursionDepth = 10;
+                maxRecursionDepth = 9;
             }
             else if (emptySquares <= 20) {
-                maxRecursionDepth = 9;
+                maxRecursionDepth = 8;
             } 
             else {
                 maxRecursionDepth = 9;
@@ -455,100 +492,115 @@ const game = (function(gameBoardSize) {
         aiWorkers.length = 0;
     }
 
-    function _aiPlayerTakeTurn(aiLevel) {
-        _aiPlayerIsThinking = true;
-        const markType = getCurrentPlayer().markType;
-        let bestMove = {};
-
-        if (gameBoard.isEmpty()) {
-            // first move by first player
-            if (getCurrentPlayer().aiLevel > 1 && gameBoard.size === 3) {
-                // speed up the very first move, just choose a random corner square:
-                const i = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
-                const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
-                bestMove = { row: i, col: j };
-            }
-            else if (getCurrentPlayer().aiLevel === 3 && gameBoard.size === 5) {
-                const i = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
-                const j = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
-                bestMove = { row: i, col: j };
-            }
-            else {
-                // choose a random square
-                bestMove = gameBoard.getRandomEmptySquare();
-            }
-
-            gameBoard.squareSetMark(bestMove.row, bestMove.col, markType);
-            _turnFinished();
+    function _aiPlayerGetFirstMove(aiLevel) {
+        // first move by first player
+        if (getCurrentPlayer().aiLevel > 1 && gameBoard.size === 3) {
+            // speed up the very first move, just choose a random corner square:
+            const i = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
+            const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
+            return { row: i, col: j };
+        }
+        else if (getCurrentPlayer().aiLevel === 3 && gameBoard.size === 5) {
+            const i = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
+            const j = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
+            return { row: i, col: j };
         }
         else {
-            // use minimax to find best move
+            // choose a random square
+            return gameBoard.getRandomEmptySquare();
+        }
+    }
 
-            let squares = gameBoard.squares;
-            let locations = getPlayableLocations(squares);
-            let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
+    function _aiPlayerMakeNextMove(aiLevel, mark) {
+        _aiPlayerIsThinking = true;
 
-            getCurrentPlayer().maxRecursionDepth = maxRecursionDepth;
-            displayController.update();
+        // use minimax to find best move
+        const playerID = getCurrentPlayer().id;
+        let bestMove = {};
+        let squares = gameBoard.squares;
+        let locations = getPlayableLocations(squares);
+        let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
 
-            _terminateAIWorkers();
+        getCurrentPlayer().maxRecursionDepth = maxRecursionDepth;
+        displayController.update();
 
-            let bestScore = -Infinity;
-            let numWorkersResponded = 0;
+        _terminateAIWorkers();
 
-            for (let i = 0; i < locations.length; i++) {
-                let loc = locations[i];
-                squares[loc.row][loc.col] = markType;
+        let bestScore = -Infinity;
+        let numWorkersResponded = 0;
 
-                // Deploy a worker to evaluate the current move:
-                let worker = new Worker('worker.js');
-                getCurrentPlayer().numWorkers = aiWorkers.push(worker);
+        for (let i = 0; i < locations.length; i++) {
+            let loc = locations[i];
+            squares[loc.row][loc.col] = mark;
+
+            // Deploy a worker to evaluate the current move:
+            let worker = new Worker('worker.js');
+            getCurrentPlayer().numWorkers = aiWorkers.push(worker);
+            
+            displayController.updateDashBoard(); // for debugging, show number of workers
+
+            worker.postMessage({ 
+                maxDepth: maxRecursionDepth,
+                minWinSquares: numSquaresInARowToWin(),
+                currentPlayerID: playerID,
+                currentPlayerMark: mark,
+                squares: squares 
+            });
+            
+            squares[loc.row][loc.col] = '';
+
+            worker.onmessage = function(e) {
+                worker.terminate(); // we're finished with this worker
+
+                getCurrentPlayer().numWorkers -= 1;
+                displayController.updateDashBoard();
+
+                let score = e.data.score;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = Object.assign({}, loc);
+                }
                 
-                displayController.updateDashBoard(); // for debugging, show number of workers
-    
-                worker.postMessage({ maxDepth: maxRecursionDepth,
-                                     minWinSquares: numSquaresInARowToWin(),
-                                     currentPlayerID: getCurrentPlayer().id,
-                                     currentPlayerMark: markType,
-                                     squares: squares });
-                
-                squares[loc.row][loc.col] = '';
+                gameBoard.scores[loc.row][loc.col] = score;
 
-                worker.onmessage = function(e) {
-                    worker.terminate(); // we're finished with this worker
+                numWorkersResponded += 1;
+                if (numWorkersResponded === aiWorkers.length) {
+                    let timeEnd = performance.now();
+                    console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
 
-                    getCurrentPlayer().numWorkers -= 1;
-                    displayController.updateDashBoard();
-
-                    let score = e.data.score;
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = Object.assign({}, loc);
-                    }
-                    
-                    numWorkersResponded += 1;
-                    if (numWorkersResponded === aiWorkers.length) {
-                        let timeEnd = performance.now();
-                        console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
-    
-                        // All workers are finished, play the best move:
-                        gameBoard.squareSetMark(bestMove.row, bestMove.col, markType);
-                        _turnFinished();
-                    }
+                    // All workers are finished, play the best move:
+                    _playerMakeMove(bestMove, mark);
                 }
             }
+        }
+    }
+
+    function _aiPlayerTakeTurn(aiLevel) {       
+        const mark = getCurrentPlayer().mark;
+
+        if (gameBoard.isEmpty()) {
+            _playerMakeMove(_aiPlayerGetFirstMove(aiLevel), mark);
+        }
+        else {
+            _aiPlayerMakeNextMove(aiLevel, mark);
         }
     }
 
     function humanPlayerTakeTurn(row, col) {
         if (isGameOver()) {
             return;
+        }               
+        else if (!gameBoard.squareIsBlank(row, col)) {
+            return;
         }
-                
-        if (gameBoard.squareIsBlank(row, col)) {
-            gameBoard.squareSetMark(row, col, getCurrentPlayer().markType);
-            _turnFinished();
-        }
+        
+        _playerMakeMove({ row, col }, getCurrentPlayer().mark);
+    }
+
+    function _playerMakeMove(move, mark) {
+        gameBoard.squareSetMark(move.row, move.col, mark);
+
+        _turnFinished();
     }
 
     function _turnFinished() {
@@ -557,7 +609,7 @@ const game = (function(gameBoardSize) {
         _winnerInfo = getWinnerN(gameBoard.squares, numSquaresInARowToWin());
 
         if (_winnerInfo) {
-            const winner = getPlayerByMarkType(_winnerInfo.markType);
+            const winner = getPlayerByMark(_winnerInfo.mark);
             const loser = getPlayerById(getPlayerOpponentID(winner.id));
 
             winner.win();

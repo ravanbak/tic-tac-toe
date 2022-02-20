@@ -1,6 +1,8 @@
+'use strict';
+
 const markType = Object.freeze({
     x: 'x',
-    o:  'o',
+    o: 'o',
 });
 
 const directionType = Object.freeze({
@@ -13,7 +15,7 @@ const directionType = Object.freeze({
 const Player = (id, name, markType) => {
     let _score = 0;
     let _name = name;
-    let _markType = markType;
+    let _mark = markType;
     let _aiLevel = 0; // 0 = human, > 0 = level of difficulty
     let _maxRecursionDepth; // current recursion depth, for debug output
     let _numWorkers = 0; // current number of workers running, for debug output
@@ -32,13 +34,13 @@ const Player = (id, name, markType) => {
             return _name;
         },
         /**
-         * @param {markTypes} value
+         * @param {markType} value
          */
-        set markType(value) {
-            _markType = value;
+        set mark(value) {
+            _mark = value;
         },
-        get markType() {
-            return _markType;
+        get mark() {
+            return _mark;
         },
         set aiLevel(value) {
             _aiLevel = value;
@@ -63,9 +65,9 @@ const Player = (id, name, markType) => {
     }
 }
 
-const WinnerInfo = (markType, winningSquares) => {
+const WinnerInfo = (mark, winningSquares) => {
     return {
-        markType,
+        mark,
         winningSquares, 
     };
 }

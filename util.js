@@ -172,11 +172,11 @@ function matchNextNSquares(squares, n, loc, direction) {
 
     let winningLocations = [ { row:loc.row, col:loc.col } ]; // save a copy of 'loc'
 
-    const markType = squares[loc.row][loc.col];
+    const mark = squares[loc.row][loc.col];
 
     for (let i = 0; i < n; i++) {
         let nextSquare = getAdjacentLocation(loc, direction, 1);
-        if (squares[nextSquare.row][nextSquare.col] === markType) {
+        if (squares[nextSquare.row][nextSquare.col] === mark) {
             loc = nextSquare;
             winningLocations.push({ row:loc.row, col:loc.col } ); // save a copy of next 'loc'
         } 
