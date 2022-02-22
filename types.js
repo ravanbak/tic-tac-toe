@@ -1,16 +1,25 @@
 'use strict';
 
-const markType = Object.freeze({
+const MarkType = Object.freeze({
     x: 'x',
     o: 'o',
 });
 
-const directionType = Object.freeze({
+const DirectionType = Object.freeze({
     row: 'row',
     col: 'col',
     diagUp: 'diagUp',
     diagDown: 'diagDown',
 });
+
+const Square = (row, col, mark, score, playOrder) => {
+    return { 
+        loc: { row, col},
+        mark, 
+        score, 
+        playOrder, 
+    };
+}
 
 const Player = (id, name, markType) => {
     let _score = 0;

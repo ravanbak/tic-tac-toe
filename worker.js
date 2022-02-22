@@ -11,18 +11,20 @@ let minWinSquares;
 
 onmessage = function(e) {
     let squares = e.data['squares'];
-    gameBoardSize = squares.length;
+    
     maxRecursionDepth = e.data.maxDepth;
     minWinSquares = e.data.minWinSquares;
     currentPlayerMark = e.data.currentPlayerMark;
     opposingPlayerMark = (currentPlayerMark === 'x') ? 'o' : 'x';
+
+    gameBoardSize = squares.length;
 
     const score = minimax(squares, 1, -Infinity, Infinity, false);
     
     postMessage({ score });
 }
 
-const gameboardIsFull = (squares) => squares.filter(row => row.filter(square => square == '').length === 0).length == gameBoardSize;
+const gameboardIsFull = (squares) => squares.filter(row => row.filter(square => square.mark === '').length === 0).length === gameBoardSize;
 
 function minimax(squares, depth, a, b, isMaximizing) {
     // Returns a score for the specified gameboard state ('squares').
@@ -36,7 +38,21 @@ function minimax(squares, depth, a, b, isMaximizing) {
         return 0;
     }
     else if (depth > maxRecursionDepth) {
-        return 0;
+        if (gameBoardSize >= 5) {
+            const mid = Math.floor(gameBoardSize / 2);
+            let score = 0;
+            for (let i = mid - 1; i <= mid + 1; i++) {
+                for (let j = mid - 1; j <= mid + 1; j++) {
+                    if (squares[i][j].mark !== '') {
+                        score += (squares[i][j].mark === currentPlayerMark) ? 1 : -1;
+                    }
+                }
+            }
+            return score;
+        } 
+        else {
+            return 0;
+        }
     }
 
     let bestScore = isMaximizing ? -Infinity : Infinity;
@@ -46,10 +62,10 @@ function minimax(squares, depth, a, b, isMaximizing) {
     for (let i = 0; i < locations.length; i++) {
         let loc = locations[i];
                 
-        squares[loc.row][loc.col] = mark;
+        squares[loc.row][loc.col].mark = mark;
         let score = minimax(squares, depth + 1, a, b, !isMaximizing);
-        squares[loc.row][loc.col] = '';
-
+        squares[loc.row][loc.col].mark = '';
+        
         if (isMaximizing) {
             bestScore = Math.max(bestScore, score);
             

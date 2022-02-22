@@ -12,10 +12,10 @@ function getGameBoardSymmetry(squares) {
     
     for (let i = 0; i < size; i++) {
         for (let j = 0; j < halfSize; j++) {
-            if (squares[i][j] !== squares[i][size - 1 - j]) {
+            if (squares[i][j].mark !== squares[i][size - 1 - j].mark) {
                 symmetricRow = false;
             }
-            if (squares[j][i] !== squares[size - 1 - j][i]) {
+            if (squares[j][i].mark !== squares[size - 1 - j][i].mark) {
                 symmetricCol = false;
             }
         }
@@ -31,12 +31,12 @@ function getGameBoardSymmetry(squares) {
         for (let i = 0; i < size; i++) {
             for (let j = 0; j < size; j++) {
                 if (i !== j) {
-                    if (squares[i][j] !== squares[j][i]) {
+                    if (squares[i][j].mark !== squares[j][i].mark) {
                         symmetricDiagDown = false;
                     }
                 }
                 if (i !== size - 1 - j) {
-                    if (squares[i][j] !== squares[size - 1 - j][size - 1 - i]) {
+                    if (squares[i][j].mark !== squares[size - 1 - j][size - 1 - i].mark) {
                         symmetricDiagUp = false;
                     }
                 }
@@ -64,7 +64,7 @@ function adjacentSquareHasMark(squares, loc) {
     for (let i = rowFirst; i <= rowLast; i++) {
         for (let j = colFirst; j <= colLast; j++) {
             if (i !== loc.row || j !== loc.col) {
-                if (squares[i][j] !== '') {
+                if (squares[i][j].mark !== '') {
                     return true;
                 }
             }
@@ -75,85 +75,67 @@ function adjacentSquareHasMark(squares, loc) {
 }
 
 function getPlayableLocations(squares) {
-    // Return an array of available locations, prioritizing
-    // locations that are adjacent to non-empty squares.
+    // Return an array of available locations.
     //
     // If marks on the gameboard are symmetric about a center
     // axis, only return the squares on one side of the axis
     // plus the squares on the axis (if size is odd, or diagonal axis).
 
     const size = squares.length;
-
-    let iEnd = size;
-    let jEnd = size;
-    
     const halfSize = Math.ceil(size / 2);
     const symmetry = getGameBoardSymmetry(squares);
-    if (symmetry.row) {
-        jEnd = halfSize;
-    }
-    if (symmetry.col) {
-        iEnd = halfSize;
-    }
+    
+    const iEnd = symmetry.col ? halfSize : size;
+    const jEnd = symmetry.row ? halfSize : size;
 
-    let squaresPriority1 = [];
-    let squaresPriority2 = [];
+    let squaresAvailable = [];
 
     for (let i = 0; i < iEnd; i++) {
         for (let j = 0; j < jEnd; j++) {
-            if (squares[i][j] !== '') {
+            if (squares[i][j].mark !== '') {
                 continue;
             }
             
             if (symmetry.diagUp) {
                 if (i + j > size - 1) {
-                    // this square is equivalent to an
-                    // earlier square since the marks
-                    // are diagonally symmetric
+                    // this square is equivalent to an earlier square
                     continue;
                 }
             }
+
             if (symmetry.diagDown) {
                 if (i - j > 0) {
-                    // this square is equivalent to an
-                    // earlier square since the marks
-                    // are diagonally symmetric
+                    // this square is equivalent to an earlier square
                     continue;
                 }
             }
 
-            let loc = { row: i, col: j };
-
-            if (adjacentSquareHasMark(squares, loc)) {
-                squaresPriority1.push(loc);
-            }
-            else {
-                squaresPriority2.push(loc);
-            }
+            squaresAvailable.push(squares[i][j]);
         }
     }
 
-    return squaresPriority1.concat(squaresPriority2);
+    let sortedSquares = squaresAvailable.sort((a, b) => b.score - a.score);
+    return sortedSquares.map(square => square.loc);
 }
 
 function getAdjacentLocation(loc, direction, factor) {
     const offset = 1 * factor; // offset 1 = next, -1 = previous
 
     switch (direction) {
-        case directionType.row:
+        case DirectionType.row:
             loc.col += offset;
             break;
         
-        case directionType.col:
+        case DirectionType.col:
             loc.row += offset;
             break;
 
-        case directionType.diagUp:
+        case DirectionType.diagUp:
             loc.row -= offset;
             loc.col += offset;
             break;
 
-        case directionType.diagDown:
+        case DirectionType.diagDown:
             loc.row += offset;
             loc.col += offset;
             break;    
@@ -166,17 +148,17 @@ function matchNextNSquares(squares, n, loc, direction) {
     // Starting at square 'loc', check the next 'n' adjacent 
     // squares and return all locations if they match.
 
-    if (squares[loc.row][loc.col] === '') {
+    if (squares[loc.row][loc.col].mark === '') {
         return null;
     }
 
     let winningLocations = [ { row:loc.row, col:loc.col } ]; // save a copy of 'loc'
 
-    const mark = squares[loc.row][loc.col];
+    const mark = squares[loc.row][loc.col].mark;
 
     for (let i = 0; i < n; i++) {
         let nextSquare = getAdjacentLocation(loc, direction, 1);
-        if (squares[nextSquare.row][nextSquare.col] === mark) {
+        if (squares[nextSquare.row][nextSquare.col].mark === mark) {
             loc = nextSquare;
             winningLocations.push({ row:loc.row, col:loc.col } ); // save a copy of next 'loc'
         } 
@@ -206,31 +188,31 @@ function getWinnerN(squares, numSquaresToWin) {
     // check for row or column winner
     for (let i = 0; i < size; i++) {
         for (let j = 0; j < lastIndex; j++) {
-            direction = directionType.row;
+            direction = DirectionType.row;
 
             matchingSquares = matchNextNSquares(squares, n, {row:i, col:j}, direction);
             if (matchingSquares) {
-                return WinnerInfo(squares[i][j], matchingSquares);
+                return WinnerInfo(squares[i][j].mark, matchingSquares);
             }
             
-            direction = directionType.col;
+            direction = DirectionType.col;
             matchingSquares = matchNextNSquares(squares, n, {row:j, col:i}, direction);
             if (matchingSquares) {
-                return WinnerInfo(squares[j][i], matchingSquares);
+                return WinnerInfo(squares[j][i].mark, matchingSquares);
             }
 
             if (i < lastIndex && j < lastIndex) {
-                direction = directionType.diagDown;
+                direction = DirectionType.diagDown;
                 matchingSquares = matchNextNSquares(squares, n, {row:i, col:j}, direction);
                 if (matchingSquares) {
-                    return WinnerInfo(squares[i][j], matchingSquares);
+                    return WinnerInfo(squares[i][j].mark, matchingSquares);
                 } 
                 
                 let row = size - 1 - i;
-                direction = directionType.diagUp;
+                direction = DirectionType.diagUp;
                 matchingSquares = matchNextNSquares(squares, n, {row:row, col:j}, direction);
                 if (matchingSquares) {
-                    return WinnerInfo(squares[row][j], matchingSquares);
+                    return WinnerInfo(squares[row][j].mark, matchingSquares);
                 }   
             }
         }
