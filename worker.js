@@ -38,21 +38,18 @@ function minimax(squares, depth, a, b, isMaximizing) {
         return 0;
     }
     else if (depth > maxRecursionDepth) {
+        let score = 0;
         if (gameBoardSize >= 5) {
             const mid = Math.floor(gameBoardSize / 2);
-            let score = 0;
             for (let i = mid - 1; i <= mid + 1; i++) {
                 for (let j = mid - 1; j <= mid + 1; j++) {
                     if (squares[i][j].mark !== '') {
-                        score += (squares[i][j].mark === currentPlayerMark) ? 1 : -1;
+                        score += (squares[i][j].mark === currentPlayerMark) ? 10 : -10;
                     }
                 }
             }
-            return score;
         } 
-        else {
-            return 0;
-        }
+        return score;
     }
 
     let bestScore = isMaximizing ? -Infinity : Infinity;
