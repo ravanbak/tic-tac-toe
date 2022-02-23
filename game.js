@@ -24,7 +24,6 @@ const game = (function(gameBoardSize) {
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getPlayerByMark = (mark) => (mark === _player1.mark ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
-    const getCurrentOpponentPlayer = () => getPlayerById(getPlayerOpponentID(_currentPlayerID));
     const getPlayerOpponentID = (playerID) => (playerID === 1 ? 2 : 1);
     let _winnerInfo = null;
     let _iddfsData = {
@@ -50,7 +49,7 @@ const game = (function(gameBoardSize) {
         const squareIsBlank = (row, col) => _squares[row][col].mark === '';
         const squareSetMark = (row, col, mark) => _squares[row][col].mark = mark;
         const squareGetMark = (row, col) => _squares[row][col].mark;
-        const squareGetScore = (row, col) => _squares[row][col].score;
+        const squareGetScore = (row, col) => _squares[row][col].score.max;
         const isFull = () => _squares.filter(row => row.filter(square => square.mark == '').length === 0).length == size;
         const isEmpty = () => _squares.filter(row => row.filter(square => square.mark == '').length === size).length == size;
         
@@ -61,7 +60,7 @@ const game = (function(gameBoardSize) {
                 const row = [];
                 _squares.push(row);
                 for (let j = 0; j < size; j++) {
-                    _squares[i].push(Square(i, j, '', 0, 0));
+                    _squares[i].push(Square(i, j, ''));
                 }
             }
         }
@@ -387,7 +386,7 @@ const game = (function(gameBoardSize) {
                 }
             } 
             else {
-                const locations = getPlayableLocations(gameBoard.squares);
+                const locations = getPlayableLocations(gameBoard.squares, true);
                 for (let i = 0; i < locations.length; i++) {
                     let row = locations[i].row;
                     let col = locations[i].col;
@@ -462,13 +461,13 @@ const game = (function(gameBoardSize) {
                 maxRecursionDepth = 13; //emptySquares;
             }
             else if (emptySquares <= 16) {
-                maxRecursionDepth = 9;
+                maxRecursionDepth = 10;
             }
             else if (emptySquares <= 20) {
-                maxRecursionDepth = 8;
+                maxRecursionDepth = 9;
             } 
             else {
-                maxRecursionDepth = 9;
+                maxRecursionDepth = 8;
             }
         }
         
@@ -512,7 +511,7 @@ const game = (function(gameBoardSize) {
         const playerID = getCurrentPlayer().id;
         let bestMove = {};
         let squares = gameBoard.squares;
-        let locations = getPlayableLocations(squares);
+        let locations = getPlayableLocations(squares, true);
         let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
 
         getCurrentPlayer().maxRecursionDepth = _iddfsData.depth;
@@ -526,7 +525,8 @@ const game = (function(gameBoardSize) {
         for (let i = 0; i < locations.length; i++) {
             let loc = locations[i];
             squares[loc.row][loc.col].mark = mark;
-            squares[loc.row][loc.col].score = 0;
+            squares[loc.row][loc.col].score.min = 0;
+            squares[loc.row][loc.col].score.max = 0;
 
             // Deploy a worker to evaluate the current move:
             let worker = new Worker('worker.js');
@@ -561,15 +561,14 @@ const game = (function(gameBoardSize) {
                     bestMove = Object.assign({}, loc);
                 }
                 
-                squares[loc.row][loc.col].score = score;
+                squares[loc.row][loc.col].score.max = score;
 
                 numWorkersResponded += 1;
                 if (numWorkersResponded === aiWorkers.length) {
                     let timeEnd = performance.now();
                     console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
 
-                    // All workers are finished, play the best move:
-                    //_playerMakeMove(bestMove, mark);
+                    // All workers are finished, increase depth or play the best move if arrived at max depth:
                     _iddfsData.bestScore = bestScore;                    
                     _iddfsData.bestMove = bestMove;
                     _aiPlayerNextDepth(aiLevel, mark, _iddfsData, maxRecursionDepth);
@@ -586,6 +585,7 @@ const game = (function(gameBoardSize) {
         }
         else {
             _iddfsData.depth = 1;
+
             _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData);
         }
     }

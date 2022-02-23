@@ -74,7 +74,7 @@ function adjacentSquareHasMark(squares, loc) {
     return false;
 }
 
-function getPlayableLocations(squares) {
+function getPlayableLocations(squares, isMaximizing) {
     // Return an array of available locations.
     //
     // If marks on the gameboard are symmetric about a center
@@ -88,7 +88,8 @@ function getPlayableLocations(squares) {
     const iEnd = symmetry.col ? halfSize : size;
     const jEnd = symmetry.row ? halfSize : size;
 
-    let squaresAvailable = [];
+    let squaresAvailable1 = [];
+    let squaresAvailable2 = [];
 
     for (let i = 0; i < iEnd; i++) {
         for (let j = 0; j < jEnd; j++) {
@@ -110,11 +111,20 @@ function getPlayableLocations(squares) {
                 }
             }
 
-            squaresAvailable.push(squares[i][j]);
+            // Prioritize inner squares
+            if (i > 0 && j > 0 && i < (size - 1) && j < (size - 1)) {
+                squaresAvailable1.push(squares[i][j]);
+            } else {
+                squaresAvailable2.push(squares[i][j]);
+            }            
         }
     }
 
-    let sortedSquares = squaresAvailable.sort((a, b) => b.score - a.score);
+    let squaresAvailable = squaresAvailable1.concat(squaresAvailable2);
+
+    // Sort squares by their minimax scores
+    let sortedSquares = squaresAvailable.sort((a, b) => (isMaximizing) ? b.score.max - a.score.max : a.score.min - b.score.min);
+
     return sortedSquares.map(square => square.loc);
 }
 

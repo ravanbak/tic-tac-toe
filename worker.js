@@ -55,7 +55,7 @@ function minimax(squares, depth, a, b, isMaximizing) {
     let bestScore = isMaximizing ? -Infinity : Infinity;
     const mark = isMaximizing ? currentPlayerMark : opposingPlayerMark;
 
-    let locations = getPlayableLocations(squares);
+    let locations = getPlayableLocations(squares, isMaximizing);
     for (let i = 0; i < locations.length; i++) {
         let loc = locations[i];
                 
@@ -64,6 +64,8 @@ function minimax(squares, depth, a, b, isMaximizing) {
         squares[loc.row][loc.col].mark = '';
         
         if (isMaximizing) {
+            squares[loc.row][loc.col].score.max = score;
+
             bestScore = Math.max(bestScore, score);
             
             a = Math.max(a, bestScore);
@@ -72,6 +74,8 @@ function minimax(squares, depth, a, b, isMaximizing) {
             }
         } 
         else {
+            squares[loc.row][loc.col].score.min = score;
+
             bestScore = Math.min(bestScore, score);
             
             b = Math.min(b, bestScore);

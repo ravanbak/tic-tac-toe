@@ -12,12 +12,12 @@ const DirectionType = Object.freeze({
     diagDown: 'diagDown',
 });
 
-const Square = (row, col, mark, score, playOrder) => {
+const Square = (row, col, mark) => {
     return { 
         loc: { row, col},
         mark, 
-        score, 
-        playOrder, 
+        score: { min: 0, max: 0 }, 
+        playOrder: 0, 
     };
 }
 
