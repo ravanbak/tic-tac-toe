@@ -96,7 +96,7 @@ function getPlayableLocations(squares, isMaximizing) {
             if (squares[i][j].mark !== '') {
                 continue;
             }
-            
+
             if (symmetry.diagUp) {
                 if (i + j > size - 1) {
                     // this square is equivalent to an earlier square
@@ -124,7 +124,6 @@ function getPlayableLocations(squares, isMaximizing) {
 
     // Sort squares by their minimax scores
     let sortedSquares = squaresAvailable.sort((a, b) => (isMaximizing) ? b.score.max - a.score.max : a.score.min - b.score.min);
-
     return sortedSquares.map(square => square.loc);
 }
 

@@ -49,7 +49,7 @@ const game = (function(gameBoardSize) {
         const squareIsBlank = (row, col) => _squares[row][col].mark === '';
         const squareSetMark = (row, col, mark) => _squares[row][col].mark = mark;
         const squareGetMark = (row, col) => _squares[row][col].mark;
-        const squareGetScore = (row, col) => _squares[row][col].score.max;
+        const squareGetScore = (row, col) => _squares[row][col].score;
         const isFull = () => _squares.filter(row => row.filter(square => square.mark == '').length === 0).length == size;
         const isEmpty = () => _squares.filter(row => row.filter(square => square.mark == '').length === size).length == size;
         
@@ -258,7 +258,7 @@ const game = (function(gameBoardSize) {
 
                     let divScore = document.createElement('div');
                     divScore.classList.add('score');
-                    divScore.style.fontSize = '12pt';
+                    divScore.style.fontSize = '10pt';
                     divSquare.appendChild(divScore);
 
                     divRow.appendChild(divSquare);
@@ -354,7 +354,7 @@ const game = (function(gameBoardSize) {
                     let j = div.dataset.col;
                     let mark = gameBoard.squareGetMark(i, j);
                     let score = gameBoard.squareGetScore(i, j);
-                    div.querySelector('.score').textContent = score.toFixed(1);    
+                    div.querySelector('.score').textContent = score.max.toFixed(1);
 
                     switch(mark) {
                         case MarkType.x:
@@ -505,8 +505,6 @@ const game = (function(gameBoardSize) {
     function _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData) {
         _aiPlayerIsThinking = true;
 
-        timeStart = performance.now();
-
         // use minimax to find best move
         const playerID = getCurrentPlayer().id;
         let bestMove = {};
@@ -565,9 +563,6 @@ const game = (function(gameBoardSize) {
 
                 numWorkersResponded += 1;
                 if (numWorkersResponded === aiWorkers.length) {
-                    let timeEnd = performance.now();
-                    console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
-
                     // All workers are finished, increase depth or play the best move if arrived at max depth:
                     _iddfsData.bestScore = bestScore;                    
                     _iddfsData.bestMove = bestMove;
@@ -584,6 +579,7 @@ const game = (function(gameBoardSize) {
             _playerMakeMove(_aiPlayerGetFirstMove(aiLevel), mark);
         }
         else {
+            timeStart = performance.now();
             _iddfsData.depth = 1;
 
             _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData);
@@ -619,6 +615,11 @@ const game = (function(gameBoardSize) {
     }
 
     function _turnFinished() {
+        if (_aiPlayerIsThinking) {
+            let timeEnd = performance.now();
+            console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
+        }
+
         _aiPlayerIsThinking = false;
 
         _winnerInfo = getWinnerN(gameBoard.squares, numSquaresInARowToWin());
