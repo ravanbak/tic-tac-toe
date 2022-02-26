@@ -12,6 +12,13 @@ const DirectionType = Object.freeze({
     diagDown: 'diagDown',
 });
 
+const PlayerType = Object.freeze({
+    Human: 0,
+    AIEasy: 1,
+    AIMedium: 2,
+    AIHard: 3,
+})
+
 const Square = (row, col, mark) => {
     return { 
         loc: { row, col},
@@ -21,11 +28,11 @@ const Square = (row, col, mark) => {
     };
 }
 
-const Player = (id, name, markType) => {
+const Player = (id, name, markType, playerType) => {
     let _score = 0;
     let _name = name;
     let _mark = markType;
-    let _aiLevel = 0; // 0 = human, > 0 = level of difficulty
+    let _playerType = playerType; // 0 = human, > 0 = level of difficulty
     let _maxRecursionDepth; // current recursion depth, for debug output
     let _numWorkers = 0; // current number of workers running, for debug output
 
@@ -51,11 +58,11 @@ const Player = (id, name, markType) => {
         get mark() {
             return _mark;
         },
-        set aiLevel(value) {
-            _aiLevel = value;
+        set playerType(value) {
+            _playerType = value;
         },
-        get aiLevel() {
-            return _aiLevel;
+        get playerType() {
+            return _playerType;
         },
         set maxRecursionDepth(value) {
             _maxRecursionDepth = value;

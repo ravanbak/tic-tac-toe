@@ -2,30 +2,31 @@
 
 const settings = {
     AutoStartNewGame: false,
-    AIPlayerTurnLengthMS: 800,
+    AIPlayerTurnLengthMin: 800,
     DefaultGameBoardSize: 5,
 }
 
 const game = (function(gameBoardSize) {
-    'use strict';
-
-    let timeStart;
-
     let _gamesPlayed = 0;
     let _gameLoopTimeStamp = 0;
-    let _playerTimeElapsed = 0;
+    
     const numSquaresInARowToWin = () => (gameBoard.size === 3) ? 3 : 4;
 
     let _firstPlayerID = 1;
     let _currentPlayerID;
-    let _aiPlayerIsThinking = false;
-    const _player1 = Player(1, 'Player 1', MarkType.x);
-    const _player2 = Player(2, 'Player 2', MarkType.o);
+    let _winnerInfo = null;
+    
+    const _player1 = Player(1, 'Player 1', MarkType.x, PlayerType.Human);
+    const _player2 = Player(2, 'Player 2', MarkType.o, PlayerType.AIMedium);
+    
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getPlayerByMark = (mark) => (mark === _player1.mark ? _player1 : _player2);
     const getCurrentPlayer = () => getPlayerById(_currentPlayerID);
     const getPlayerOpponentID = (playerID) => (playerID === 1 ? 2 : 1);
-    let _winnerInfo = null;
+    
+    let _aiTimerTimeStart;
+    let _aiPlayerDelayTimeElapsed = 0;
+    let _aiPlayerIsThinking = false;
     let _iddfsData = {
         // iterative deepening depth-first search data
         depth: 1, 
@@ -33,15 +34,15 @@ const game = (function(gameBoardSize) {
         bestMove: {},
     }
 
-    const soundEffect = {
-        player1go: document.querySelector('.player1-go'),
-        player2go: document.querySelector('.player2-go'),
-        win: document.querySelector('.win'), // human wins
-        lose: document.querySelector('.lose'), // human loses to AI
-        tie: document.querySelector('.tie'), // tie game, or AI vs AI game over
+    const soundEffects = {
+        player1go: document.querySelector('.audio--player1-go'),
+        player2go: document.querySelector('.audio--player2-go'),
+        win: document.querySelector('.audio--win'), // human wins
+        lose: document.querySelector('.audio--lose'), // human loses to AI
+        tie: document.querySelector('.audio--tie'), // tie game, or AI vs AI game over
     }
 
-    let aiWorkers = [];
+    let aiWorkers = []; // array to keep track of workers and terminate them if necessary
 
     const gameBoard = (function(size) {
         let _squares = []; // size * size square grid
@@ -109,8 +110,6 @@ const game = (function(gameBoardSize) {
     })(gameBoardSize);    
 
     const displayController = (function() {
-        'use strict';
-    
         const _divGameboard = document.querySelector('.gameboard');
     
         const _init = function() {
@@ -125,6 +124,8 @@ const game = (function(gameBoardSize) {
             document.querySelector('#player1-name').addEventListener('click', () => _showPlayerNameForm(1));
             document.querySelector('#player2-name').addEventListener('click', () => _showPlayerNameForm(2));
             
+            document.querySelector('#player1 .player__type select').value = _player1.playerType;
+            document.querySelector('#player2 .player__type select').value = _player2.playerType;
             document.querySelector('#player1 .player__type select').addEventListener('change', function(e) { _setPlayerType(e, 1); });
             document.querySelector('#player2 .player__type select').addEventListener('change', function(e) { _setPlayerType(e, 2); });
     
@@ -177,7 +178,7 @@ const game = (function(gameBoardSize) {
         function _setPlayerType(e, playerID) {
             const player = getPlayerById(playerID);
 
-            if (player.aiLevel > 0) {
+            if (player.playerType !== PlayerType.Human) {
                 // Terminate any existing workers since they were
                 // working at a different AI level, and also, player 
                 // type may be changing to human.
@@ -185,7 +186,7 @@ const game = (function(gameBoardSize) {
                 _aiPlayerIsThinking = false;
             }
 
-            player.aiLevel = parseInt(e.target.value);
+            player.playerType = parseInt(e.target.value);
         }
 
         function _hidePlayerNamePopup() {
@@ -204,53 +205,60 @@ const game = (function(gameBoardSize) {
         }
     
         function _playerTakeTurn(e) {
-            if (getCurrentPlayer().aiLevel) {
+            if (getCurrentPlayer().playerType) {
                 return;
             }
 
-            const row = e.currentTarget.dataset['row'];
-            const col = e.currentTarget.dataset['col'];
+            // const row = e.currentTarget.dataset['row'];
+            // const col = e.currentTarget.dataset['col'];
+            const row = e.target.dataset['row'];
+            const col = e.target.dataset['col'];
 
             humanPlayerTakeTurn(row, col);
         }
     
-        function _createGameBoard() {
+        function _createGameboardSquareDiv(i, j, width) {
             const size = gameBoard.size;
-    
             const cssFontPercent = parseInt((80 / size).toString());
             const cssFontSize = `min(${cssFontPercent}vw, ${cssFontPercent * 0.66}vh)`;
-            const cssSquareSizePercent = (100 / size).toString() + '%';
+
+            let divSquare = document.createElement('div');
+            divSquare.classList.add('gameboard__square');
+            divSquare.setAttribute('data-row', i);
+            divSquare.setAttribute('data-col', j);
+            divSquare.style.width = width;
+            divSquare.style.fontSize = cssFontSize;
+
+            // hide outer edge borders
+            if (i === 0) {
+                divSquare.style.borderTop = 'none';
+                if (j ===0) divSquare.style.borderTopLeftRadius = '10px';
+                else if (j === size - 1) divSquare.style.borderTopRightRadius = '10px';
+            } else if (i === size - 1) {
+                divSquare.style.borderBottom = 'none';
+                if (j ===0) divSquare.style.borderBottomLeftRadius = '10px';
+                else if (j === size - 1) divSquare.style.borderBottomRightRadius = '10px';                    
+            }
+            if (j === 0) {
+                divSquare.style.borderLeft = 'none';
+            } else if (j === size - 1) {
+                divSquare.style.borderRight = 'none';
+            }
+
+            return divSquare;
+        }
+
+        function _createGameBoard() {
+            const size = gameBoard.size;
+            const cssSquareSizeAsPercentage = (100 / size).toString() + '%';
 
             for (let i = 0; i < size; i++) {
                 let divRow = document.createElement('div');
                 divRow.classList.add('gameboard__row');
-                divRow.style.height = cssSquareSizePercent;
+                divRow.style.height = cssSquareSizeAsPercentage;
 
                 for (let j = 0; j < size; j++) {
-                    let divSquare = document.createElement('div');
-                    divSquare.classList.add('gameboard__square');
-                    divSquare.setAttribute('data-row', i);
-                    divSquare.setAttribute('data-col', j);
-                    divSquare.addEventListener('click', _playerTakeTurn);
-                    divSquare.style.width = cssSquareSizePercent;
-                    divSquare.style.fontSize = cssFontSize;
-                    //divSquare.style.border = '3px solid #335577';
-    
-                    // hide outer edge borders
-                    if (i === 0) {
-                        divSquare.style.borderTop = 'none';
-                        if (j ===0) divSquare.style.borderTopLeftRadius = '10px';
-                        else if (j === size - 1) divSquare.style.borderTopRightRadius = '10px';
-                    } else if (i === size - 1) {
-                        divSquare.style.borderBottom = 'none';
-                        if (j ===0) divSquare.style.borderBottomLeftRadius = '10px';
-                        else if (j === size - 1) divSquare.style.borderBottomRightRadius = '10px';                    
-                    }
-                    if (j === 0) {
-                        divSquare.style.borderLeft = 'none';
-                    } else if (j === size - 1) {
-                        divSquare.style.borderRight = 'none';
-                    }
+                    let divSquare = _createGameboardSquareDiv(i, j, cssSquareSizeAsPercentage);
     
                     let divMark = document.createElement('div');
                     divMark.classList.add('mark');
@@ -267,6 +275,7 @@ const game = (function(gameBoardSize) {
                 _divGameboard.appendChild(divRow);
             }
     
+            _divGameboard.addEventListener('click', _playerTakeTurn);
             _divGameboard.addEventListener('click', update);
     
             // prevent highlighting 'x' or 'o' text on gameboard:
@@ -324,7 +333,7 @@ const game = (function(gameBoardSize) {
             if (isGameOver()) {
                 document.querySelector('.game-controls__new-game').classList.add('pulse-size');
             } else {
-                _highlightCurrentPlayer();
+                _hilightCurrentPlayer();
             }
         }
     
@@ -340,7 +349,7 @@ const game = (function(gameBoardSize) {
             }
         }
 
-        function _highlightCurrentPlayer() {
+        function _hilightCurrentPlayer() {
             const player = document.querySelector('#player' + getCurrentPlayer().id + '.player');
             player.classList.add('player--current');
             player.classList.add('pulse-color');
@@ -374,6 +383,10 @@ const game = (function(gameBoardSize) {
                 }
             );
 
+            _hilightWinningSquares();
+        }
+    
+        function _hilightWinningSquares() {
             if (_winnerInfo) {
                 const winningLocations = _winnerInfo.winningSquares;
                 for (let i = 0; i < winningLocations.length; i++) {
@@ -397,7 +410,7 @@ const game = (function(gameBoardSize) {
                 }
             }
         }
-    
+
         function update() {
             _updateGameBoard();
             updateDashBoard();
@@ -407,7 +420,6 @@ const game = (function(gameBoardSize) {
             update,
             updateDashBoard,
         }
-    
     })();
 
     const isGameOver = () => !!_winnerInfo || gameBoard.isFull();
@@ -418,9 +430,9 @@ const game = (function(gameBoardSize) {
 
         _currentPlayerID = _firstPlayerID;
        
-        _playerTimeElapsed = 0;
         _gameLoopTimeStamp = 0;
-
+        
+        _aiPlayerDelayTimeElapsed = 0;
         _aiPlayerIsThinking = false;
         _terminateAIWorkers();
 
@@ -458,7 +470,7 @@ const game = (function(gameBoardSize) {
         }
         else {
             if (emptySquares <= 13) {
-                maxRecursionDepth = 13; //emptySquares;
+                maxRecursionDepth = 13;
             }
             else if (emptySquares <= 16) {
                 maxRecursionDepth = 10;
@@ -485,13 +497,13 @@ const game = (function(gameBoardSize) {
 
     function _aiPlayerGetFirstMove(aiLevel) {
         // first move by first player
-        if (getCurrentPlayer().aiLevel > 1 && gameBoard.size === 3) {
+        if (getCurrentPlayer().playerType > PlayerType.AIEasy && gameBoard.size === 3) {
             // speed up the very first move, just choose a random corner square:
             const i = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
             const j = Math.floor(Math.random() * 2) === 0 ? 0 : gameBoard.size - 1;
             return { row: i, col: j };
         }
-        else if (getCurrentPlayer().aiLevel === 3 && gameBoard.size === 5) {
+        else if (getCurrentPlayer().playerType === PlayerType.AIHard && gameBoard.size >= 5) {
             const i = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
             const j = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
             return { row: i, col: j };
@@ -579,7 +591,7 @@ const game = (function(gameBoardSize) {
             _playerMakeMove(_aiPlayerGetFirstMove(aiLevel), mark);
         }
         else {
-            timeStart = performance.now();
+            _aiTimerTimeStart = performance.now();
             _iddfsData.depth = 1;
 
             _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData);
@@ -617,7 +629,7 @@ const game = (function(gameBoardSize) {
     function _turnFinished() {
         if (_aiPlayerIsThinking) {
             let timeEnd = performance.now();
-            console.log('Time elapsed: ' + Math.floor(timeEnd - timeStart).toString() + 'ms');
+            console.log('Time elapsed: ' + Math.floor(timeEnd - _aiTimerTimeStart).toString() + 'ms');
         }
 
         _aiPlayerIsThinking = false;
@@ -630,28 +642,28 @@ const game = (function(gameBoardSize) {
 
             winner.win();
         
-            if (winner.aiLevel === 0) {
-                _playSoundEffect(soundEffect.win);
+            if (winner.playerType === PlayerType.Human) {
+                _playSoundEffect(soundEffects.win);
             } 
-            else if (loser.aiLevel === 0) {
-                _playSoundEffect(soundEffect.lose);
+            else if (loser.playerType === PlayerType.Human) {
+                _playSoundEffect(soundEffects.lose);
             }
             else {
-                _playSoundEffect(soundEffect.tie);
+                _playSoundEffect(soundEffects.tie);
             }
         }
         else if (isGameOver()) {
-            _playSoundEffect(soundEffect.tie);
+            _playSoundEffect(soundEffects.tie);
         }
         else if (_currentPlayerID === 1) {
-            _playSoundEffect(soundEffect.player1go);
+            _playSoundEffect(soundEffects.player1go);
         }
         else if (_currentPlayerID === 2) {
-            _playSoundEffect(soundEffect.player2go);
+            _playSoundEffect(soundEffects.player2go);
         }
 
         _currentPlayerID = (_currentPlayerID % 2) + 1;
-        _playerTimeElapsed = 0;
+        _aiPlayerDelayTimeElapsed = 0;
 
         if (_winnerInfo || isGameOver()) {
             _gamesPlayed += 1;
@@ -683,15 +695,15 @@ const game = (function(gameBoardSize) {
         const elapsed = (_gameLoopTimeStamp === 0) ? 0 : (timeStamp - _gameLoopTimeStamp);
         _gameLoopTimeStamp = timeStamp;
 
-        _playerTimeElapsed += elapsed;
+        _aiPlayerDelayTimeElapsed += elapsed;
 
-        if (_playerTimeElapsed >= settings.AIPlayerTurnLengthMS) {
-            _playerTimeElapsed = 0;
+        if (_aiPlayerDelayTimeElapsed >= settings.AIPlayerTurnLengthMin) {
+            _aiPlayerDelayTimeElapsed = 0;
 
             if (!_aiPlayerIsThinking) {
-                const ai = getCurrentPlayer().aiLevel;
-                if (ai) {
-                    _aiPlayerTakeTurn(ai);
+                const aiLevel = getCurrentPlayer().playerType;
+                if (aiLevel !== PlayerType.Human) {
+                    _aiPlayerTakeTurn(aiLevel);
                 }
             }
         }
