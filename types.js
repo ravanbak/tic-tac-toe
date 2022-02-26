@@ -49,9 +49,6 @@ const Player = (id, name, markType, playerType) => {
         get name() {
             return _name;
         },
-        /**
-         * @param {markType} value
-         */
         set mark(value) {
             _mark = value;
         },
