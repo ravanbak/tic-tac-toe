@@ -29,6 +29,13 @@ const game = (function(gameBoardSize) {
     let _aiTimerTimeStart;
     let _aiPlayerDelayTimeElapsed = 0;
     let _aiPlayerIsThinking = false;
+    let _aiPlayerProgressData = {
+        workersTotal: 0,
+        workersRunning: 0,
+        depthMax: 0,
+        depthCurrent: 0
+    }
+    
     let _iddfsData = {
         // iterative deepening depth-first search data
         depth: 1, 
@@ -115,6 +122,7 @@ const game = (function(gameBoardSize) {
         const _divGameboard = document.querySelector('.gameboard');
         
         const _init = function() {
+            // Add elements for displaying debug info:
             if (settings.showDebugInfo) {
                 for (let i = 1; i <= 2; i++) {
                     const divPlayer = document.querySelector(`.dashboard .players #player${i}`);
@@ -135,6 +143,7 @@ const game = (function(gameBoardSize) {
                 }               
             }
 
+            // Add options to select element for AI levels:
             if (window.Worker) {
                 const aiTypes = [
                     'A.I. - Easy', 
@@ -169,7 +178,7 @@ const game = (function(gameBoardSize) {
             document.querySelector('#player2 .player__type select').value = _player2.playerType;
             document.querySelector('#player1 .player__type select').addEventListener('change', function(e) { _setPlayerType(e, 1); });
             document.querySelector('#player2 .player__type select').addEventListener('change', function(e) { _setPlayerType(e, 2); });
-    
+
             document.querySelector('.board-size select').addEventListener('change', _setGameboardSize);
 
             document.querySelector('.overlay .name-popup').addEventListener('submit', _submitPlayerName);
@@ -383,8 +392,28 @@ const game = (function(gameBoardSize) {
             } else {
                 _hilightCurrentPlayer();
             }
+
+            // updateAIProgressBar();
         }
     
+        function updateAIProgressBar() {
+            const playerID = getCurrentPlayer().id;
+            const player = getPlayerById(playerID);
+            
+            const divPlayerBarContainer = document.querySelector(`#player${playerID} .progress`);
+            divPlayerBarContainer.style.visibility = (player.isHuman() || isGameOver()) ? 'hidden' : 'visible';
+
+            if (!player.isHuman()) {
+                const divPlayerBar = document.querySelector(`#player${playerID} .progress .bar`);
+                const progressPercentage = _aiPlayerGetProgress();
+                divPlayerBar.style.width = `${progressPercentage}%`;    
+            }
+
+            const opponentID = getPlayerOpponentID(playerID);
+            const divOpponentBarContainer = document.querySelector(`#player${opponentID} .progress`);
+            divOpponentBarContainer.style.visibility = 'hidden';
+        }
+
         function _getGameStateMessage() {
             if (_winnerInfo) {
                 return getPlayerByMark(_winnerInfo.markType).name + ' WINS!'
@@ -465,11 +494,13 @@ const game = (function(gameBoardSize) {
         function update() {
             _updateGameBoard();
             updateDashBoard();
+            updateAIProgressBar();
         }
     
         return {
             update,
             updateDashBoard,
+            updateAIProgressBar,
         }
     })();
 
@@ -583,6 +614,8 @@ const game = (function(gameBoardSize) {
             if (settings.showDebugInfo) {
                 getCurrentPlayer().numWorkers = numWorkers;
                 displayController.updateDashBoard();
+            } else {
+                displayController.updateAIProgressBar();
             }
 
             worker.onerror = function(event) {
@@ -615,6 +648,11 @@ const game = (function(gameBoardSize) {
         let locations = getPlayableLocations(squares, true);
         let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
 
+        _aiPlayerProgressData.depthCurrent = _iddfsData.depth;
+        _aiPlayerProgressData.depthMax = maxRecursionDepth;
+        _aiPlayerProgressData.workersRunning = 0; //locations.length;
+        _aiPlayerProgressData.workersTotal = locations.length;
+
         if (settings.showDebugInfo) {
             getCurrentPlayer().maxRecursionDepth = _iddfsData.depth;
             displayController.update();
@@ -633,11 +671,20 @@ const game = (function(gameBoardSize) {
                 // Deploy a worker to evaluate the current move:
                 let worker = _createWorker(squares, loc, mark, _iddfsData.depth);
 
+                _aiPlayerProgressData.workersRunning = aiWorkers.length;
+
                 worker.onmessage = function(e) {
                     worker.terminate(); // we're finished with this worker
 
+                    _aiPlayerProgressData.workersRunning -= 1;
+
                     getCurrentPlayer().numWorkers -= 1;
-                    displayController.updateDashBoard();
+
+                    if (settings.showDebugInfo) {
+                        displayController.updateDashBoard();
+                    } else {
+                        displayController.updateAIProgressBar();
+                    }
 
                     let score = e.data.score;
                     if (score > _iddfsData.bestScore) {
@@ -667,7 +714,7 @@ const game = (function(gameBoardSize) {
             if (settings.showDebugInfo) {
                 _aiTimerTimeStart = performance.now();
             }
-            
+
             _iddfsData.depth = 1;
             _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData);
         }
@@ -681,6 +728,19 @@ const game = (function(gameBoardSize) {
         else {
             _playerMakeMove(_iddfsData.bestMove, mark);
         }
+    }
+
+    function _aiPlayerGetProgress() {
+        // Returns AI decision making progress as a percentage (0 - 100)
+
+        if (_aiPlayerProgressData.depthMax === 0 || _aiPlayerProgressData.workersTotal === 0) {
+            return 0;
+        }
+
+        const depthPercent = (_aiPlayerProgressData.depthCurrent - 1) / _aiPlayerProgressData.depthMax;
+        const workerPercent = (_aiPlayerProgressData.workersTotal - _aiPlayerProgressData.workersRunning) / _aiPlayerProgressData.workersTotal;
+
+        return (depthPercent + workerPercent / _aiPlayerProgressData.depthMax) * 100;
     }
 
     function humanPlayerTakeTurn(row, col) {
@@ -717,6 +777,13 @@ const game = (function(gameBoardSize) {
 
         _currentPlayerID = (_currentPlayerID % 2) + 1;
         _aiPlayerDelayTimeElapsed = 0;
+
+        _iddfsData.depth = 0;
+        
+        _aiPlayerProgressData.workersTotal = 0;
+        _aiPlayerProgressData.workersRunning = 0;
+        _aiPlayerProgressData.depthMax = 0;
+        _aiPlayerProgressData.depthCurrent = 0;
 
         if (_winnerInfo || isGameOver()) {
             _gamesPlayed += 1;

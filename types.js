@@ -38,6 +38,7 @@ const Player = (id, name, markType, playerType) => {
     const reset = () => _score = 0;
     const win = () => _score++;
     const getScore = () => _score;
+    const isHuman = () => _playerType === PlayerType.Human;
 
     return {
         id,
@@ -74,6 +75,7 @@ const Player = (id, name, markType, playerType) => {
         },        
         getScore,
         win,
+        isHuman,
     }
 }
 

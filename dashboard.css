@@ -34,6 +34,21 @@
     box-shadow: var(--square-shadow);
 }
 
+.player .progress {
+    width: 80%;
+    height: 8px;
+    background-color: var(--color-palette-2);
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
+.player .progress .bar {
+    width: 0;
+    height: 8px;
+    background-color: var(--color-palette-2c);
+    border-radius: 10px;
+}
+
 #player1.player {
     color: var(--color-player1-fg);
     background: var(--color-player1-bg);
