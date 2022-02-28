@@ -24,7 +24,6 @@ const Square = (row, col, mark) => {
         loc: { row, col},
         mark, 
         score: { min: 0, max: 0 }, 
-        playOrder: 0, 
     };
 }
 

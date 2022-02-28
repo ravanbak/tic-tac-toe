@@ -4,6 +4,7 @@ const settings = {
     autoStartNewGame: false,
     aiPlayerTurnDelay: 800,
     defaultGameBoardSize: 5,
+    showDebugInfo: false,
 }
 
 const game = (function(gameBoardSize) {
@@ -111,6 +112,7 @@ const game = (function(gameBoardSize) {
 
     const displayController = (function() {
         const _divGameboard = document.querySelector('.gameboard');
+        
     
         const _init = function() {
             _createGameBoard();
@@ -264,10 +266,12 @@ const game = (function(gameBoardSize) {
                     divMark.classList.add('mark');
                     divSquare.appendChild(divMark);
 
-                    let divScore = document.createElement('div');
-                    divScore.classList.add('score');
-                    divScore.style.fontSize = '10pt';
-                    divSquare.appendChild(divScore);
+                    if (settings.showDebugInfo) {
+                        let divScore = document.createElement('div');
+                        divScore.classList.add('score');
+                        divScore.style.fontSize = '10pt';
+                        divSquare.appendChild(divScore);
+                    }
 
                     divRow.appendChild(divSquare);
                 }
@@ -309,12 +313,13 @@ const game = (function(gameBoardSize) {
             document.querySelector('#player1 .player__score span').textContent = getPlayerById(1).getScore();
             document.querySelector('#player2 .player__score span').textContent = getPlayerById(2).getScore();
             
-            document.querySelector('#player1 .depth span').textContent = getPlayerById(1).maxRecursionDepth;
-            document.querySelector('#player2 .depth span').textContent = getPlayerById(2).maxRecursionDepth;
+            if (settings.showDebugInfo) {
+                document.querySelector('#player1 .depth span').textContent = getPlayerById(1).maxRecursionDepth;
+                document.querySelector('#player2 .depth span').textContent = getPlayerById(2).maxRecursionDepth;
 
-            // debug info
-            document.querySelector('#player1 .workers span').textContent = _player1.numWorkers;
-            document.querySelector('#player2 .workers span').textContent = _player2.numWorkers;
+                document.querySelector('#player1 .workers span').textContent = _player1.numWorkers;
+                document.querySelector('#player2 .workers span').textContent = _player2.numWorkers;
+            }
 
             document.querySelector('.message h2').textContent = _getGameStateMessage();
             
@@ -362,8 +367,11 @@ const game = (function(gameBoardSize) {
                     let i = div.dataset.row;
                     let j = div.dataset.col;
                     let mark = gameBoard.squareGetMark(i, j);
-                    let score = gameBoard.squareGetScore(i, j);
-                    div.querySelector('.score').textContent = score.max.toFixed(1);
+
+                    if (settings.showDebugInfo) {
+                        let score = gameBoard.squareGetScore(i, j);
+                        div.querySelector('.score').textContent = score.max.toFixed(1);
+                    }
 
                     switch(mark) {
                         case MarkType.x:
@@ -398,7 +406,7 @@ const game = (function(gameBoardSize) {
                     div.classList.add('gameboard__square--winner');
                 }
             } 
-            else {
+            else if (settings.showDebugInfo) {
                 const locations = getPlayableLocations(gameBoard.squares, true);
                 for (let i = 0; i < locations.length; i++) {
                     let row = locations[i].row;
@@ -507,9 +515,8 @@ const game = (function(gameBoardSize) {
             return { row: i, col: j };
         }
         else if (getCurrentPlayer().playerType === PlayerType.AIHard && gameBoard.size >= 5) {
-            const i = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
-            const j = Math.floor(Math.random() * 2) === 0 ? 1 : gameBoard.size - 2;
-            return { row: i, col: j };
+            const mid = Math.floor(gameBoard.size / 2);
+            return { row: mid, col: mid };
         }
         else {
             // choose a random square
@@ -525,9 +532,12 @@ const game = (function(gameBoardSize) {
         squares[loc.row][loc.col].score.max = 0;        
 
         let worker = new Worker('worker.js');
-        getCurrentPlayer().numWorkers = aiWorkers.push(worker);
-        
-        displayController.updateDashBoard(); // for debugging, show number of workers
+        const numWorkers = aiWorkers.push(worker);
+
+        if (settings.showDebugInfo) {
+            getCurrentPlayer().numWorkers = numWorkers;
+            displayController.updateDashBoard();
+        }
 
         worker.onerror = function(event) {
             console.log('Error in worker!');
@@ -558,13 +568,15 @@ const game = (function(gameBoardSize) {
         let locations = getPlayableLocations(squares, true);
         let maxRecursionDepth = _getMaxRecursionDepth(aiLevel, gameBoard.getEmptySquareCount());
 
-        getCurrentPlayer().maxRecursionDepth = _iddfsData.depth;
-        displayController.update();
+        if (settings.showDebugInfo) {
+            getCurrentPlayer().maxRecursionDepth = _iddfsData.depth;
+            displayController.update();
+        }
 
         _terminateAIWorkers();
 
-        let bestScore = -Infinity;
-        let bestMove = {};
+        _iddfsData.bestScore = -Infinity;
+        _iddfsData.bestMove = {};
         let numWorkersResponded = 0;
 
         for (let i = 0; i < locations.length; i++) {
@@ -580,9 +592,9 @@ const game = (function(gameBoardSize) {
                 displayController.updateDashBoard();
 
                 let score = e.data.score;
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = Object.assign({}, locations[i]);
+                if (score > _iddfsData.bestScore) {
+                    _iddfsData.bestScore = score;
+                    _iddfsData.bestMove = Object.assign({}, locations[i]);
                 }
                 
                 squares[loc.row][loc.col].score.max = score;
@@ -590,8 +602,6 @@ const game = (function(gameBoardSize) {
                 numWorkersResponded += 1;
                 if (numWorkersResponded === aiWorkers.length) {
                     // All workers are finished, increase depth or play the best move if arrived at max depth:
-                    _iddfsData.bestScore = bestScore;                    
-                    _iddfsData.bestMove = bestMove;
                     _aiPlayerNextDepth(aiLevel, mark, _iddfsData, maxRecursionDepth);
                 }
             }
@@ -605,7 +615,9 @@ const game = (function(gameBoardSize) {
             _playerMakeMove(_aiPlayerGetFirstMove(aiLevel), mark);
         }
         else {
-            _aiTimerTimeStart = performance.now();
+            if (settings.showDebugInfo) {
+                _aiTimerTimeStart = performance.now();
+            }
             
             _iddfsData.depth = 1;
             _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData);
@@ -640,7 +652,7 @@ const game = (function(gameBoardSize) {
     }
 
     function _turnFinished() {
-        if (_aiPlayerIsThinking) {
+        if (settings.showDebugInfo && _aiPlayerIsThinking) {
             let timeEnd = performance.now();
             console.log('Time elapsed: ' + Math.floor(timeEnd - _aiTimerTimeStart).toString() + 'ms');
         }

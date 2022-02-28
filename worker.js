@@ -26,6 +26,34 @@ onmessage = function(e) {
 
 const gameboardIsFull = (squares) => squares.filter(row => row.filter(square => square.mark === '').length === 0).length === gameBoardSize;
 
+function _evaluateGameboard(squares) {
+    // If the gameboard is 5x5 or larger, return a value based on the number
+    // of marks the current player has near the middle of the board; otherwise
+    // return 0.
+
+    let score = 0;
+    
+    if (gameBoardSize >= 5) {
+        const mid = Math.floor(gameBoardSize / 2);
+        
+        for (let i = mid - 1; i <= mid + 1; i++) {
+            for (let j = mid - 1; j <= mid + 1; j++) {
+                if (squares[i][j].mark !== '') {
+                    let val = (squares[i][j].mark === currentPlayerMark) ? 10 : -10;
+
+                    score += val;
+                    if (i === mid && j === mid) {
+                        // Extra points for middle square(s).
+                        score += val;
+                    }
+                }
+            }
+        }
+    } 
+
+    return score;
+}
+
 function minimax(squares, depth, a, b, isMaximizing) {
     // Returns a score for the specified gameboard state ('squares').
 
@@ -38,18 +66,7 @@ function minimax(squares, depth, a, b, isMaximizing) {
         return 0;
     }
     else if (depth > maxRecursionDepth) {
-        let score = 0;
-        if (gameBoardSize >= 5) {
-            const mid = Math.floor(gameBoardSize / 2);
-            for (let i = mid - 1; i <= mid + 1; i++) {
-                for (let j = mid - 1; j <= mid + 1; j++) {
-                    if (squares[i][j].mark !== '') {
-                        score += (squares[i][j].mark === currentPlayerMark) ? 10 : -10;
-                    }
-                }
-            }
-        } 
-        return score;
+        return _evaluateGameboard(squares);
     }
 
     let bestScore = isMaximizing ? -Infinity : Infinity;
