@@ -16,9 +16,10 @@ const game = (function(gameBoardSize) {
     let _firstPlayerID = 1;
     let _currentPlayerID;
     let _winnerInfo = null;
-    
+    let _player2Type = (window.Worker) ? PlayerType.AIMedium : PlayerType.Human;
+
     const _player1 = Player(1, 'Player 1', MarkType.x, PlayerType.Human);
-    const _player2 = Player(2, 'Player 2', MarkType.o, PlayerType.AIMedium);
+    const _player2 = Player(2, 'Player 2', MarkType.o, _player2Type);
     
     const getPlayerById = (id) => (id === 1 ? _player1 : _player2);
     const getPlayerByMark = (mark) => (mark === _player1.mark ? _player1 : _player2);
@@ -134,6 +135,25 @@ const game = (function(gameBoardSize) {
                 }               
             }
 
+            if (window.Worker) {
+                const aiTypes = [
+                    'A.I. - Easy', 
+                    'A.I. - Medium', 
+                    'A.I. - Hard'
+                ];
+
+                for (let i = 1; i <= 2; i++) {
+                    const selectPlayerType = document.querySelector(`#player${i} select`);
+                    
+                    for (let j = 1; j <= 3; j++) {
+                        let option = document.createElement('option');
+                        option.value = `${j}`;
+                        option.textContent = aiTypes[j - 1];
+                        selectPlayerType.appendChild(option);
+                    }
+                }
+            }
+
             _createGameBoard();
             _setupEventListeners();
         }();
@@ -230,10 +250,14 @@ const game = (function(gameBoardSize) {
                 return;
             }
 
-            // const row = e.currentTarget.dataset['row'];
-            // const col = e.currentTarget.dataset['col'];
             const row = e.target.dataset['row'];
+            if (!row) {
+                return;
+            }
             const col = e.target.dataset['col'];
+            if (!col) {
+                return;
+            }
 
             humanPlayerTakeTurn(row, col);
         }
@@ -517,12 +541,14 @@ const game = (function(gameBoardSize) {
     }
 
     function _terminateAIWorkers() {
-        for (let i = 0; i < aiWorkers.length; i++) {
-            aiWorkers[i].terminate();
-            aiWorkers[i] = null;
-        }
+        if (window.Worker) {
+            for (let i = 0; i < aiWorkers.length; i++) {
+                aiWorkers[i].terminate();
+                aiWorkers[i] = null;
+            }
 
-        aiWorkers.length = 0;
+            aiWorkers.length = 0;
+        }
     }
 
     function _aiPlayerGetFirstMove(aiLevel) {
@@ -544,38 +570,40 @@ const game = (function(gameBoardSize) {
     }
 
     function _createWorker(squares, loc, mark, depth) {
-        // Mark the specified square:
-        squares[loc.row][loc.col].mark = mark;
-        
-        squares[loc.row][loc.col].score.min = 0;
-        squares[loc.row][loc.col].score.max = 0;        
+        if (window.Worker) {
+            // Mark the specified square:
+            squares[loc.row][loc.col].mark = mark;
+            
+            squares[loc.row][loc.col].score.min = 0;
+            squares[loc.row][loc.col].score.max = 0;        
 
-        let worker = new Worker('worker.js');
-        const numWorkers = aiWorkers.push(worker);
+            let worker = new Worker('worker.js');
+            const numWorkers = aiWorkers.push(worker);
 
-        if (settings.showDebugInfo) {
-            getCurrentPlayer().numWorkers = numWorkers;
-            displayController.updateDashBoard();
+            if (settings.showDebugInfo) {
+                getCurrentPlayer().numWorkers = numWorkers;
+                displayController.updateDashBoard();
+            }
+
+            worker.onerror = function(event) {
+                console.log('Error in worker!');
+                console.log(event);
+            }
+
+            // Start the worker:
+            worker.postMessage({ 
+                maxDepth: depth,
+                minWinSquares: numSquaresInARowToWin(),
+                currentPlayerID: getCurrentPlayer().id,
+                currentPlayerMark: mark,
+                squares: squares 
+            });
+
+            // Return the square to its original state:
+            squares[loc.row][loc.col].mark = '';
+
+            return worker;
         }
-
-        worker.onerror = function(event) {
-            console.log('Error in worker!');
-            console.log(event);
-        }
-
-        // Start the worker:
-        worker.postMessage({ 
-            maxDepth: depth,
-            minWinSquares: numSquaresInARowToWin(),
-            currentPlayerID: getCurrentPlayer().id,
-            currentPlayerMark: mark,
-            squares: squares 
-        });
-
-        // Return the square to its original state:
-        squares[loc.row][loc.col].mark = '';
-
-        return worker;
     }
 
     function _aiPlayerMakeNextMove(aiLevel, mark, _iddfsData) {
@@ -601,27 +629,29 @@ const game = (function(gameBoardSize) {
         for (let i = 0; i < locations.length; i++) {
             let loc = locations[i];
 
-            // Deploy a worker to evaluate the current move:
-            let worker = _createWorker(squares, loc, mark, _iddfsData.depth);
+            if (window.Worker) {
+                // Deploy a worker to evaluate the current move:
+                let worker = _createWorker(squares, loc, mark, _iddfsData.depth);
 
-            worker.onmessage = function(e) {
-                worker.terminate(); // we're finished with this worker
+                worker.onmessage = function(e) {
+                    worker.terminate(); // we're finished with this worker
 
-                getCurrentPlayer().numWorkers -= 1;
-                displayController.updateDashBoard();
+                    getCurrentPlayer().numWorkers -= 1;
+                    displayController.updateDashBoard();
 
-                let score = e.data.score;
-                if (score > _iddfsData.bestScore) {
-                    _iddfsData.bestScore = score;
-                    _iddfsData.bestMove = Object.assign({}, locations[i]);
-                }
-                
-                squares[loc.row][loc.col].score.max = score;
+                    let score = e.data.score;
+                    if (score > _iddfsData.bestScore) {
+                        _iddfsData.bestScore = score;
+                        _iddfsData.bestMove = Object.assign({}, locations[i]);
+                    }
+                    
+                    squares[loc.row][loc.col].score.max = score;
 
-                numWorkersResponded += 1;
-                if (numWorkersResponded === aiWorkers.length) {
-                    // All workers are finished, increase depth or play the best move if arrived at max depth:
-                    _aiPlayerNextDepth(aiLevel, mark, _iddfsData, maxRecursionDepth);
+                    numWorkersResponded += 1;
+                    if (numWorkersResponded === aiWorkers.length) {
+                        // All workers are finished, increase depth or play the best move if arrived at max depth:
+                        _aiPlayerNextDepth(aiLevel, mark, _iddfsData, maxRecursionDepth);
+                    }
                 }
             }
         }
