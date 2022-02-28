@@ -113,8 +113,27 @@ const game = (function(gameBoardSize) {
     const displayController = (function() {
         const _divGameboard = document.querySelector('.gameboard');
         
-    
         const _init = function() {
+            if (settings.showDebugInfo) {
+                for (let i = 1; i <= 2; i++) {
+                    const divPlayer = document.querySelector(`.dashboard .players #player${i}`);
+
+                    let divDepth = document.createElement('div');
+                    divDepth.classList.add('depth');
+                    divDepth.textContent = 'Depth: ';
+                    let spanDepth = document.createElement('span');
+                    divDepth.appendChild(spanDepth);
+                    divPlayer.appendChild(divDepth);
+
+                    let divWorkers = document.createElement('div');
+                    divWorkers.classList.add('workers');
+                    divWorkers.textContent = 'Workers: ';
+                    let spanWorkers = document.createElement('span');
+                    divWorkers.appendChild(spanWorkers);
+                    divPlayer.appendChild(divWorkers); 
+                }               
+            }
+
             _createGameBoard();
             _setupEventListeners();
         }();
