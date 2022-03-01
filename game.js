@@ -392,8 +392,6 @@ const game = (function(gameBoardSize) {
             } else {
                 _hilightCurrentPlayer();
             }
-
-            // updateAIProgressBar();
         }
     
         function updateAIProgressBar() {
@@ -416,7 +414,7 @@ const game = (function(gameBoardSize) {
 
         function _getGameStateMessage() {
             if (_winnerInfo) {
-                return getPlayerByMark(_winnerInfo.markType).name + ' WINS!'
+                return getPlayerByMark(_winnerInfo.mark).name + ' WINS!'
             }
             else if (isGameOver()) {
                 return 'Tie Game!';
